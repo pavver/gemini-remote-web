@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+@theme {
+  --font-cascadia: 'Cascadia Code', 'CaskaydiaCove NF', 'JetBrains Mono', monospace;
+  
+  /* VS Code Color Palette */
+  --color-vsc-bg: #1e1e1e;
+  --color-vsc-sidebar: #181818;
+  --color-vsc-header: #181818;
+  --color-vsc-border: #2b2b2b;
+  --color-vsc-active: #2a2d2e;
+  --color-vsc-hover: #2a2d2e;
+  --color-vsc-foreground: #cccccc;
+  --color-vsc-blue: #007acc;
+  --color-vsc-blue-bright: #3794ff;
+  
+  /* Override Primary to VS Code Blue */
+  --color-primary-500: #007acc;
+  --color-primary-600: #3794ff;
+}
+
+@layer base {
+  body {
+    @apply antialiased bg-[var(--color-vsc-bg)] text-[var(--color-vsc-foreground)];
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-vsc-sidebar); }
+::-webkit-scrollbar-thumb { background: #333333; }
+::-webkit-scrollbar-thumb:hover { background: #444444; }
+
+/* Markdown VS Code Style */
+.prose-gemini {
+  pre {
+    @apply p-4 my-4 overflow-x-auto font-mono text-[13px] leading-6;
+    background-color: #1e1e1e;
+    border: 1px solid var(--color-vsc-border);
+    border-radius: 4px;
+  }
+  code {
+    @apply font-mono text-blue-400 bg-[#2d2d2d] px-1.5 py-0.5 rounded-sm before:content-none after:content-none;
+  }
+  p { @apply mb-4 last:mb-0; }
+}
+
+/* VS Code Content Chunks */
+.prose-content-chunk {
+  font-family: var(--font-cascadia);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cccccc !important;
+  
+  pre { 
+    background-color: #1e1e1e !important; 
+    border: 1px solid var(--color-vsc-border) !important; 
+    border-radius: 4px;
+  }
+}
+
+.vscode-bg {
+  background-color: #1e1e1e !important;
+  border-color: var(--color-vsc-border) !important;
+}
