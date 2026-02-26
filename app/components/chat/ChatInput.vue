@@ -14,7 +14,7 @@ function handleSend() {
 </script>
 
 <template>
-  <footer class="p-3 sm:p-6 bg-neutral-900/80 border-t border-neutral-800 backdrop-blur-md pb-[safe-area-inset-bottom]">
+  <footer class="p-3 sm:p-6 bg-[var(--color-vsc-bg)] border-t border-[var(--color-vsc-border)] backdrop-blur-md pb-[safe-area-inset-bottom]">
     <form @submit.prevent="handleSend" class="max-w-5xl mx-auto flex items-end gap-2 sm:gap-3">
       <UTextarea
         v-model="message"
@@ -28,7 +28,7 @@ function handleSend() {
         color="neutral"
         :disabled="disabled"
         :ui="{ 
-          base: 'text-sm sm:text-base py-2 sm:py-3 px-3 sm:px-4 font-sans bg-black/20',
+          base: 'text-sm sm:text-base py-2 sm:py-3 px-3 sm:px-4 font-sans bg-[var(--color-vsc-sidebar)]',
           rounded: 'rounded-xl sm:rounded-2xl'
         }"
         @keydown.enter.exact.prevent="handleSend"

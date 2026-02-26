@@ -55,7 +55,7 @@ const displayPath = computed(() => {
     
     <!-- Optional: show model in sidebar if session is active -->
     <div v-if="status?.model && isActive" class="mt-1 ml-6">
-       <span class="text-[8px] bg-neutral-800 px-1 rounded text-blue-400 uppercase tracking-widest font-black">{{ status.model }}</span>
+       <span class="text-[8px] bg-[var(--color-vsc-bg)] px-1 rounded text-[var(--color-vsc-blue-bright)] uppercase tracking-widest font-black border border-[var(--color-vsc-border)]">{{ status.model }}</span>
     </div>
   </div>
 </template>

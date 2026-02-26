@@ -46,7 +46,7 @@ const activeFolderName = computed(() => {
           </span>
         </div>
         <div class="flex flex-col gap-1">
-          <div class="w-12 sm:w-24 h-1 bg-neutral-800 rounded-full overflow-hidden">
+          <div class="w-12 sm:w-24 h-1 bg-[var(--color-vsc-active)] rounded-full overflow-hidden">
             <div 
               class="h-full transition-all duration-500 ease-out"
               :class="Math.round((sessionStore.activeSession.status.contextTokens / 1000000) * 100) > 80 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-[var(--color-vsc-blue)]'"
@@ -61,7 +61,7 @@ const activeFolderName = computed(() => {
       </div>
 
       <!-- RAM -->
-      <div class="hidden xs:flex items-center gap-2 px-2 py-1 bg-neutral-800/30 rounded border border-neutral-700/30">
+      <div class="hidden xs:flex items-center gap-2 px-2 py-1 bg-[var(--color-vsc-active)] rounded border border-[var(--color-vsc-border)]">
         <UIcon name="i-heroicons-circle-stack" class="text-neutral-500 w-3 h-3" />
         <span class="font-mono text-[10px] text-neutral-400 font-bold">{{ sessionStore.activeSession.status.ramUsage }}</span>
       </div>
