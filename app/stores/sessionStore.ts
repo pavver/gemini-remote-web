@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { HistoryItem, SystemStatus, Session } from '../types/api';
+import type { HistoryItem, SystemStatus } from '../types/api';
 
 export interface SessionState {
   id: string;
@@ -9,6 +9,8 @@ export interface SessionState {
   streamingState: string;
   isActive: boolean;
   toolArgsCache: Record<string, any>;
+  lastToast: { message: string; severity: 'info' | 'warning' | 'error' } | null;
+  responseStartTime: number | null;
 }
 
 export const useSessionStore = defineStore('sessions', () => {
@@ -35,7 +37,9 @@ export const useSessionStore = defineStore('sessions', () => {
       },
       streamingState: 'idle',
       isActive: true,
-      toolArgsCache: {}
+      toolArgsCache: {},
+      lastToast: null,
+      responseStartTime: null
     };
     
     // Robust status merge

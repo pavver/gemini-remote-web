@@ -6,8 +6,15 @@ defineProps<{
   isConnected: boolean;
 }>();
 
-const emit = defineEmits(['open-new-session', 'select-session', 'stop-session', 'toggle-sidebar']);
+const emit = defineEmits(['open-new-session', 'select-session', 'stop-session', 'toggle-sidebar', 'logout']);
 const sessionStore = useSessionStore();
+
+function handleSessionSelect(id: string) {
+  emit('select-session', id);
+  if (import.meta.client && window.innerWidth < 1024) {
+    emit('toggle-sidebar');
+  }
+}
 </script>
 
 <template>
@@ -31,7 +38,7 @@ const sessionStore = useSessionStore();
         <span class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Gemini Remote</span>
       </div>
       <div class="flex items-center gap-2">
-        <UBadge :color="isConnected ? 'emerald' : 'red'" variant="subtle" size="sm" class="rounded-full px-2 text-[9px] font-black uppercase tracking-tighter">
+        <UBadge :color="isConnected ? 'success' : 'error'" variant="subtle" size="sm" class="rounded-full px-2 text-[9px] font-black uppercase tracking-tighter">
           {{ isConnected ? 'Online' : 'Offline' }}
         </UBadge>
         <UButton
@@ -71,14 +78,26 @@ const sessionStore = useSessionStore();
         :dir="session.dir"
         :is-active="sessionStore.activeSessionId === id"
         :status="session.status"
-        @select="id => { emit('select-session', id); if (typeof window !== 'undefined' && window.innerWidth < 1024) emit('toggle-sidebar'); }"
+        @select="handleSessionSelect"
         @stop="id => emit('stop-session', id)"
       />
     </div>
 
     <!-- Sidebar Footer -->
-    <div class="p-3 border-t border-[var(--color-vsc-border)] min-w-[250px] flex items-center justify-center">
-      <span class="text-[8px] font-bold text-neutral-600 uppercase tracking-widest">v1.0.0-remote</span>
+    <div class="p-2 border-t border-[var(--color-vsc-border)] min-w-[250px] flex flex-col gap-2">
+      <UButton
+        icon="i-heroicons-arrow-left-on-rectangle"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        label="Logout and Clear"
+        block
+        class="text-neutral-500 hover:text-red-400 hover:bg-red-400/5 transition-all"
+        @click="emit('logout')"
+      />
+      <div class="flex justify-center">
+        <span class="text-[8px] font-bold text-neutral-600 uppercase tracking-widest">v1.0.0-remote</span>
+      </div>
     </div>
   </aside>
 </template>

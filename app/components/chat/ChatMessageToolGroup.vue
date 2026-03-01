@@ -38,7 +38,7 @@ function formatArgs(args: any): string {
   }
   
   const keys = Object.keys(args);
-  if (keys.length > 0) {
+  if (keys.length > 0 && keys[0]) {
     const val = String(args[keys[0]]);
     return val.length > 40 ? '...' + val.slice(-37) : val;
   }
@@ -49,7 +49,7 @@ function formatArgs(args: any): string {
 
 <template>
   <div class="flex flex-col items-start w-full gap-2 my-1">
-    <div class="max-w-[98%] sm:max-w-[90%] bg-neutral-900/20 border border-neutral-800/50 p-3 rounded-xl rounded-tl-none flex flex-col gap-2.5">
+    <div class="max-w-[98%] sm:max-w-[90%] bg-[#1e1e1e] border border-[var(--color-vsc-border)] p-3 rounded-xl rounded-tl-none flex flex-col gap-2.5 shadow-md">
       <div class="flex items-center gap-2 px-1">
         <UIcon name="i-heroicons-wrench-screwdriver" class="w-3.5 h-3.5 text-neutral-500" />
         <span class="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] leading-none">

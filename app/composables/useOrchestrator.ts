@@ -1,24 +1,36 @@
-import { OrchestratorAction, OrchestratorResponse, type OrchestratorMessage, CLIMessageType } from '../types/api';
+import { OrchestratorAction, OrchestratorResponse, CLIMessageType } from '../types/api';
 import { useSessionStore } from '../stores/sessionStore';
 
-export function useOrchestrator() {
-  const ws = ref<WebSocket | null>(null);
-  const sessionStore = useSessionStore();
-  const isConnected = ref(false);
+// Shared state across all components
+const ws = ref<WebSocket | null>(null);
+const isConnected = ref(false);
+const isAuthenticated = ref(false);
+const authError = ref<string | null>(null);
+const suggestions = ref<any[]>([]);
+const activeConfirmation = ref<any>(null);
 
-  function connect() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname || 'localhost';
-    const socket = new WebSocket(`${protocol}//${host}:8000/ws`);
+export function useOrchestrator() {
+  const sessionStore = useSessionStore();
+
+  function connect(url: string, login?: string, password?: string) {
+    if (ws.value) ws.value.close();
+    
+    const socket = new WebSocket(url);
+    authError.value = null;
     
     socket.onopen = () => {
       isConnected.value = true;
-      send(OrchestratorAction.LIST_SESSIONS, {});
+      if (login && password) {
+        sendRaw({ action: OrchestratorAction.AUTH, login, password });
+      } else {
+        send(OrchestratorAction.LIST_SESSIONS, {});
+      }
     };
 
     socket.onmessage = (event) => {
       try {
-        const data: OrchestratorMessage = JSON.parse(event.data);
+        console.log('[Orchestrator RAW]:', event.data);
+        const data: any = JSON.parse(event.data);
         handleMessage(data);
       } catch (e) {
         console.error('Failed to parse orchestrator message', e);
@@ -27,16 +39,37 @@ export function useOrchestrator() {
 
     socket.onclose = () => {
       isConnected.value = false;
-      setTimeout(connect, 3000);
+      
+      // If we weren't authenticated and there's no specific error yet, it's a connection issue
+      if (!isAuthenticated.value && !authError.value) {
+        authError.value = 'Could not connect to Orchestrator. Check URL or firewall.';
+      }
+
+      // Do not auto-reconnect if auth failed or explicitly disconnected
+      if (isAuthenticated.value) {
+        setTimeout(() => connect(url, login, password), 3000);
+      }
     };
 
     ws.value = socket;
   }
 
-  function handleMessage(data: OrchestratorMessage) {
+  function handleMessage(data: any) {
     switch (data.type) {
+      case OrchestratorResponse.AUTH_OK:
+        isAuthenticated.value = true;
+        authError.value = null;
+        send(OrchestratorAction.LIST_SESSIONS, {});
+        break;
+
+      case OrchestratorResponse.AUTH_FAILED:
+        isAuthenticated.value = false;
+        authError.value = data.message || 'Authentication failed';
+        ws.value?.close();
+        break;
+
       case OrchestratorResponse.SESSION_LIST:
-        data.sessions?.forEach(s => {
+        data.sessions?.forEach((s: any) => {
           sessionStore.upsertSession(s.id, { dir: s.dir, isActive: true });
           send(OrchestratorAction.CONNECT_SESSION, { session_id: s.id });
           requestSessionState(s.id);
@@ -65,6 +98,10 @@ export function useOrchestrator() {
   }
 
   function handleCLIMessage(sessionId: string, msg: any) {
+    if (msg.type === CLIMessageType.CONFIRMATION_REQUEST) {
+      console.log('[Orchestrator] Confirmation request received:', msg.payload);
+    }
+
     switch (msg.type) {
       case CLIMessageType.SESSION_INIT:
         sessionStore.upsertSession(sessionId, {
@@ -84,15 +121,31 @@ export function useOrchestrator() {
         break;
 
       case CLIMessageType.STREAMING_STATE:
-        sessionStore.upsertSession(sessionId, { streamingState: msg.payload.state });
+        sessionStore.upsertSession(sessionId, { 
+          streamingState: msg.payload.state,
+          responseStartTime: msg.payload.state === 'idle' ? null : undefined
+        });
+        break;
+
+      case CLIMessageType.TOAST:
+        sessionStore.upsertSession(sessionId, { lastToast: msg.payload });
         break;
       
       case CLIMessageType.THOUGHT_STREAM:
         if (sessionStore.activeSessionId === sessionId) {
            sessionStore.upsertSession(sessionId, { 
-             streamingState: msg.payload.isComplete ? 'idle' : 'responding' 
+             streamingState: msg.payload.isComplete ? 'idle' : 'responding',
+             responseStartTime: msg.payload.isComplete ? null : undefined
            });
         }
+        break;
+
+      case CLIMessageType.SEARCH_RESPONSE:
+        suggestions.value = msg.payload?.suggestions || [];
+        break;
+
+      case CLIMessageType.CONFIRMATION_REQUEST:
+        activeConfirmation.value = msg.payload;
         break;
     }
   }
@@ -100,6 +153,12 @@ export function useOrchestrator() {
   function send(action: OrchestratorAction, payload: any) {
     if (ws.value?.readyState === WebSocket.OPEN) {
       ws.value.send(JSON.stringify({ action, ...payload }));
+    }
+  }
+
+  function sendRaw(data: any) {
+    if (ws.value?.readyState === WebSocket.OPEN) {
+      ws.value.send(JSON.stringify(data));
     }
   }
 
@@ -120,10 +179,23 @@ export function useOrchestrator() {
 
   function sendMessage(text: string) {
     if (!sessionStore.activeSessionId) return;
-    send(OrchestratorAction.CLI_COMMAND, {
-      session_id: sessionStore.activeSessionId,
-      payload: { type: CLIMessageType.SEND_PROMPT, payload: { text } }
+    
+    sessionStore.upsertSession(sessionStore.activeSessionId, { 
+      lastToast: null,
+      responseStartTime: Date.now() 
     });
+
+    if (text.startsWith('/')) {
+      send(OrchestratorAction.CLI_COMMAND, {
+        session_id: sessionStore.activeSessionId,
+        payload: { type: CLIMessageType.EXECUTE_COMMAND, payload: { command: text } }
+      });
+    } else {
+      send(OrchestratorAction.CLI_COMMAND, {
+        session_id: sessionStore.activeSessionId,
+        payload: { type: CLIMessageType.SEND_PROMPT, payload: { text } }
+      });
+    }
   }
 
   function stopGeneration() {
@@ -134,5 +206,41 @@ export function useOrchestrator() {
     });
   }
 
-  return { isConnected, connect, startSession, stopSession, sendMessage, stopGeneration };
+  function requestSuggestions(query: string, type: 'at' | 'slash' = 'slash') {
+    if (!sessionStore.activeSessionId) return;
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionStore.activeSessionId,
+      payload: { 
+        type: CLIMessageType.SEARCH_REQUEST, 
+        payload: { query, type } 
+      }
+    });
+  }
+
+  function sendConfirmation(id: number, confirmed: boolean, choice?: string) {
+    if (!sessionStore.activeSessionId) return;
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionStore.activeSessionId,
+      payload: { 
+        type: CLIMessageType.CONFIRMATION_RESPONSE, 
+        payload: { id, confirmed, choice } 
+      }
+    });
+    activeConfirmation.value = null;
+  }
+
+  return { 
+    isConnected, 
+    isAuthenticated, 
+    authError, 
+    suggestions,
+    activeConfirmation,
+    connect, 
+    startSession, 
+    stopSession, 
+    sendMessage, 
+    stopGeneration,
+    requestSuggestions,
+    sendConfirmation
+  };
 }

@@ -30,7 +30,7 @@ const modelBarClass = computed(() => {
 
 <template>
   <div class="flex flex-col items-start w-full">
-    <div class="max-w-[98%] sm:max-w-[90%] bg-neutral-900 border border-neutral-800 p-3.5 sm:p-5 rounded-2xl rounded-tl-none shadow-xl">
+    <div class="max-w-[98%] sm:max-w-[90%] bg-[#252526] border border-[var(--color-vsc-border)] p-3.5 sm:p-5 rounded-2xl rounded-tl-none shadow-xl">
       <!-- Model name inside the main bubble, above the text with dynamic colors -->
       <div v-if="modelName" class="mb-1.5 flex items-center gap-2">
         <div class="w-1 h-3 rounded-full transition-colors duration-500" :class="modelBarClass"></div>
@@ -39,7 +39,7 @@ const modelBarClass = computed(() => {
         </span>
       </div>
       
-      <div class="prose prose-neutral prose-invert prose-sm max-w-none prose-gemini" v-html="renderedMarkdown"></div>
+      <div class="prose prose-neutral prose-invert prose-sm max-w-none prose-gemini font-[var(--font-cascadia)]" v-html="renderedMarkdown"></div>
     </div>
   </div>
 </template>
