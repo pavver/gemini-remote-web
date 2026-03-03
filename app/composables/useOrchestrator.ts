@@ -74,6 +74,9 @@ export function useOrchestrator() {
           send(OrchestratorAction.CONNECT_SESSION, { session_id: s.id });
           requestSessionState(s.id);
         });
+        if (data.sessions?.length > 0 && !sessionStore.activeSessionId) {
+          sessionStore.activeSessionId = data.sessions[0].id;
+        }
         break;
 
       case OrchestratorResponse.SESSION_STARTED:
@@ -98,33 +101,69 @@ export function useOrchestrator() {
   }
 
   function handleCLIMessage(sessionId: string, msg: any) {
-    if (msg.type === CLIMessageType.CONFIRMATION_REQUEST) {
-      console.log('[Orchestrator] Confirmation request received:', msg.payload);
-    }
-
     switch (msg.type) {
       case CLIMessageType.SESSION_INIT:
         sessionStore.upsertSession(sessionId, {
           history: msg.payload.history || [],
           status: msg.payload.status,
           streamingState: msg.payload.streamingState || 'idle',
+          activePtyId: msg.payload.activePtyId,
           isActive: true
         });
+        // Auto-subscribe to shell if PTY is active
+        if (msg.payload.activePtyId) {
+          subscribe(sessionId, `shell:${msg.payload.activePtyId}`);
+        }
         break;
       
       case CLIMessageType.HISTORY_UPDATE:
         sessionStore.addHistoryItem(sessionId, msg.payload.item);
         break;
+
+      case CLIMessageType.HISTORY_RESPONSE:
+        // Merge old history items from pagination
+        if (msg.payload.items) {
+          const session = sessionStore.sessions[sessionId];
+          if (session) {
+             const existingIds = new Set(session.history.map(i => i.id));
+             const newItems = msg.payload.items.filter((i: any) => !existingIds.has(i.id));
+             session.history = [...newItems, ...session.history];
+          }
+        }
+        break;
       
       case CLIMessageType.STATUS_UPDATE:
-        sessionStore.upsertSession(sessionId, { status: msg.payload });
+        const prevPtyId = sessionStore.sessions[sessionId]?.activePtyId;
+        sessionStore.upsertSession(sessionId, { 
+          status: msg.payload,
+          activePtyId: msg.payload.activePtyId 
+        });
+        // Handle PTY subscription change
+        if (msg.payload.activePtyId && msg.payload.activePtyId !== prevPtyId) {
+           if (prevPtyId) unsubscribe(sessionId, `shell:${prevPtyId}`);
+           subscribe(sessionId, `shell:${msg.payload.activePtyId}`);
+        }
+        break;
+
+      case CLIMessageType.SHELL_OUTPUT:
+        sessionStore.appendShellOutput(sessionId, Array.isArray(msg.payload.chunk) ? msg.payload.chunk : [[{ text: msg.payload.chunk, fg: '', bg: '', bold: false, italic: false, underline: false, inverse: false }]]);
         break;
 
       case CLIMessageType.STREAMING_STATE:
-        sessionStore.upsertSession(sessionId, { 
-          streamingState: msg.payload.state,
-          responseStartTime: msg.payload.state === 'idle' ? null : undefined
-        });
+        if (msg.payload.state === 'idle') {
+          // Delay transition to idle to keep final toast visible for 1s
+          setTimeout(() => {
+            sessionStore.upsertSession(sessionId, { 
+              streamingState: 'idle',
+              responseStartTime: null
+            });
+          }, 1000);
+        } else {
+          sessionStore.upsertSession(sessionId, { 
+            streamingState: msg.payload.state,
+            responseStartTime: undefined
+          });
+        }
         break;
 
       case CLIMessageType.TOAST:
@@ -147,6 +186,16 @@ export function useOrchestrator() {
       case CLIMessageType.CONFIRMATION_REQUEST:
         activeConfirmation.value = msg.payload;
         break;
+
+      case CLIMessageType.AUTH_STATE_UPDATE:
+        sessionStore.upsertSession(sessionId, { 
+          cliAuthStatus: { state: msg.payload.state, error: msg.payload.error } as any
+        });
+        break;
+
+      case CLIMessageType.OPEN_DIFF:
+        console.log('[Orchestrator] Diff requested:', msg.payload);
+        break;
     }
   }
 
@@ -160,6 +209,44 @@ export function useOrchestrator() {
     if (ws.value?.readyState === WebSocket.OPEN) {
       ws.value.send(JSON.stringify(data));
     }
+  }
+
+  function subscribe(sessionId: string, topic: string) {
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionId,
+      payload: { type: CLIMessageType.SUBSCRIBE, payload: { topic } }
+    });
+  }
+
+  function unsubscribe(sessionId: string, topic: string) {
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionId,
+      payload: { type: CLIMessageType.UNSUBSCRIBE, payload: { topic } }
+    });
+  }
+
+  function requestHistory(offset: number, limit: number = 20) {
+    if (!sessionStore.activeSessionId) return;
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionStore.activeSessionId,
+      payload: { type: CLIMessageType.HISTORY_REQUEST, payload: { offset, limit } }
+    });
+  }
+
+  function sendDiffResponse(filePath: string, accepted: boolean, content?: string) {
+    if (!sessionStore.activeSessionId) return;
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionStore.activeSessionId,
+      payload: { type: CLIMessageType.DIFF_RESPONSE, payload: { filePath, accepted, content } }
+    });
+  }
+
+  function submitAuth(method?: string, apiKey?: string) {
+    if (!sessionStore.activeSessionId) return;
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionStore.activeSessionId,
+      payload: { type: CLIMessageType.AUTH_SUBMIT, payload: { method, apiKey } }
+    });
   }
 
   function startSession(dir: string = '/home/radxa/gemini') {
@@ -241,6 +328,11 @@ export function useOrchestrator() {
     sendMessage, 
     stopGeneration,
     requestSuggestions,
-    sendConfirmation
+    sendConfirmation,
+    subscribe,
+    unsubscribe,
+    requestHistory,
+    sendDiffResponse,
+    submitAuth
   };
 }

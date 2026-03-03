@@ -61,9 +61,15 @@ export enum CLIMessageType {
   AUTH_STATE_UPDATE = 'AUTH_STATE_UPDATE',
   RESIZE_TERMINAL = 'RESIZE_TERMINAL',
   SESSION_STATE_REQUEST = 'SESSION_STATE_REQUEST',
+  HISTORY_REQUEST = 'HISTORY_REQUEST',
+  HISTORY_RESPONSE = 'HISTORY_RESPONSE',
+  OPEN_DIFF = 'OPEN_DIFF',
+  DIFF_RESPONSE = 'DIFF_RESPONSE',
   EXECUTE_COMMAND = 'EXECUTE_COMMAND',
   CLEAR_HISTORY = 'CLEAR_HISTORY',
   RESET_SESSION = 'RESET_SESSION',
+  SUBSCRIBE = 'SUBSCRIBE',
+  UNSUBSCRIBE = 'UNSUBSCRIBE',
 }
 
 export interface AnsiToken {
@@ -82,11 +88,31 @@ export interface HistoryItem {
   id: number;
   type: string;
   text?: string;
+  role?: 'user' | 'model' | 'system';
   thought?: { summary: string };
   model?: string;
-  tools?: any[];
-  payload?: any;
-  [key: string]: any;
+  tools?: RemoteToolCall[];
+}
+
+export interface RemoteToolCall {
+  callId: string;
+  name: string;
+  args: string;
+  status: string;
+  description?: string;
+  result?: string;
+}
+
+export interface ConfirmationOption {
+  label: string;
+  value: string;
+}
+
+export interface ConfirmationRequest {
+  id: number;
+  prompt: string;
+  type: string;
+  options: ConfirmationOption[];
 }
 
 export interface SystemStatus {
@@ -96,6 +122,15 @@ export interface SystemStatus {
   geminiMdFileCount: number;
   skillsCount: number;
   mcpServers: Array<{ name: string; status: string }>;
+  cwd: string;
+  gitBranch: string | null;
+  platform: string;
+  activePtyId: number | null;
+}
+
+export interface DiffRequest {
+  filePath: string;
+  newContent: string;
 }
 
 export interface CLIOutgoingMessage {

@@ -68,13 +68,13 @@ function handleSessionSelect(id: string) {
 
     <!-- Sessions List -->
     <div class="flex-1 overflow-y-auto min-w-[250px]">
-      <div v-if="sessionStore.sessions.size === 0" class="px-4 py-10 text-neutral-600 text-xs text-center italic border-none">
+      <div v-if="Object.keys(sessionStore.sessions).length === 0" class="px-4 py-10 text-neutral-600 text-xs text-center italic border-none">
         No projects open
       </div>
       <SessionItem
-        v-for="[id, session] in sessionStore.sessions"
+        v-for="(session, id) in sessionStore.sessions"
         :key="id"
-        :id="id"
+        :id="String(id)"
         :dir="session.dir"
         :is-active="sessionStore.activeSessionId === id"
         :status="session.status"

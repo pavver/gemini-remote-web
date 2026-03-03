@@ -17,7 +17,8 @@ const {
   stopSession, 
   sendMessage, 
   stopGeneration,
-  sendConfirmation
+  sendConfirmation,
+  requestHistory
 } = useOrchestrator();
 const sessionStore = useSessionStore();
 
@@ -123,8 +124,13 @@ const enrichedHistory = computed(() => {
 
     let processedItem = { ...item, contextModel: currentModel };
     
-    if (item.type === 'info' && typeof item.payload === 'object' && item.payload?.message) {
-      processedItem.text = item.payload.message;
+    // Ensure text is present for system messages
+    if ((item.type === 'info' || item.type === 'warning' || item.type === 'error') && !processedItem.text) {
+      if (typeof item.payload === 'object' && item.payload?.message) {
+        processedItem.text = item.payload.message;
+      } else if (typeof item.payload === 'string') {
+        processedItem.text = item.payload;
+      }
     }
 
     if (item.type === 'tool_group' && item.tools) {
@@ -192,6 +198,7 @@ function handleNewSession(path: string) {
           :response-start-time="sessionStore.activeSession?.responseStartTime"
           @stop-generation="stopGeneration"
           @confirm-action="({ id, confirmed, choice }) => sendConfirmation(id, confirmed, choice)"
+          @load-history="(offset) => requestHistory(offset)"
         />
 
         <ChatInput 

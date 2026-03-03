@@ -7,41 +7,24 @@ import ChatMessageSystem from './ChatMessageSystem.vue';
 import ChatMessageGeminiContent from './ChatMessageGeminiContent.vue';
 import ChatMessageToolGroup from './ChatMessageToolGroup.vue';
 import ChatMessageConfirmation from './ChatMessageConfirmation.vue';
+import type { ConfirmationRequest } from '../../types/api';
 
-const emit = defineEmits(['stop-generation', 'confirm-action']);
+const emit = defineEmits(['stop-generation', 'confirm-action', 'load-history']);
 
 const props = defineProps<{
   history: any[];
   isResponding: boolean;
-  activeConfirmation?: any;
-  lastToast?: { message: string; severity: string } | null;
+  activeConfirmation?: ConfirmationRequest;
+  lastToast?: { id: number; message: string; severity: string } | null;
   responseStartTime?: number | null;
 }>();
 
-const elapsedTime = ref(0);
-let timerInterval: any = null;
-
-watch(() => props.responseStartTime, (newVal) => {
-  if (newVal) {
-    elapsedTime.value = 0;
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      elapsedTime.value = Math.floor((Date.now() - newVal) / 1000);
-    }, 1000);
-  } else {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-  }
-}, { immediate: true });
-
-onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval);
-});
+// ... existing timer logic ...
 
 const scrollContainer = ref<HTMLElement | null>(null);
 const userHasScrolledUp = ref(false);
+const isLoadingHistory = ref(false);
+const prevScrollHeight = ref(0);
 
 const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
   if (!scrollContainer.value) return;
@@ -59,6 +42,18 @@ const handleScroll = () => {
   const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
   
   userHasScrolledUp.value = !isAtBottom;
+
+  // Load history when reaching the top
+  if (scrollTop < 50 && !isLoadingHistory.value && props.history.length > 0) {
+    isLoadingHistory.value = true;
+    prevScrollHeight.value = scrollHeight;
+    emit('load-history', props.history.length);
+    
+    // Reset loading state after a delay or when history changes
+    setTimeout(() => {
+      isLoadingHistory.value = false;
+    }, 1000);
+  }
 };
 
 // Initial scroll to bottom on mount
@@ -71,10 +66,20 @@ onMounted(() => {
 
 // Watch for history changes and respond state to auto-scroll if needed
 watch([() => props.history, () => props.isResponding, () => props.activeConfirmation], async (newVal, oldVal) => {
-  // If history was empty and now has items, or if the session changed (history replaced), reset sticky
   const newHistory = newVal[0];
   const oldHistory = oldVal ? oldVal[0] : [];
   
+  // If we just loaded old history items (prepended)
+  if (newHistory.length > oldHistory.length && newHistory[newHistory.length - 1]?.id === oldHistory[oldHistory.length - 1]?.id) {
+    await nextTick();
+    if (scrollContainer.value) {
+      // Maintain scroll position relative to the "old" first item
+      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight - prevScrollHeight.value;
+    }
+    return;
+  }
+
+  // If history was empty and now has items, or if the session changed (history replaced), reset sticky
   if (newHistory.length > 0 && (oldHistory.length === 0 || newHistory[0]?.id !== oldHistory[0]?.id)) {
     userHasScrolledUp.value = false;
   }
