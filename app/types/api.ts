@@ -101,6 +101,8 @@ export interface RemoteToolCall {
   status: string;
   description?: string;
   result?: string;
+  fileDiff?: string;
+  fileName?: string;
 }
 
 export interface ConfirmationOption {
@@ -113,6 +115,8 @@ export interface ConfirmationRequest {
   prompt: string;
   type: string;
   options: ConfirmationOption[];
+  fileDiff?: string;
+  fileName?: string;
 }
 
 export interface SystemStatus {

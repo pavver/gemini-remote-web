@@ -70,6 +70,13 @@ function handleChoice(opt: ConfirmationOption) {
           <span class="text-emerald-500 mr-2">$</span>{{ request.prompt }}
         </div>
 
+        <!-- Diff View if present -->
+        <ChatPartsDiffView 
+          v-if="request.fileDiff" 
+          :diff-content="request.fileDiff" 
+          :filename="request.fileName" 
+        />
+
         <!-- Inline Options -->
         <div class="space-y-2 pt-2">
           <p class="text-[9px] text-neutral-500 font-black uppercase tracking-[0.2em] mb-3 px-1">

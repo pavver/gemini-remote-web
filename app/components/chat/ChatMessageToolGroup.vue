@@ -84,6 +84,14 @@ function formatArgs(args: any): string {
 
             <span class="opacity-40 text-[9px] uppercase tracking-tighter">{{ tool.status }}</span>
           </div>
+
+          <!-- Diff View for Tool Result -->
+          <ChatPartsDiffView 
+            v-if="tool.fileDiff" 
+            :diff-content="tool.fileDiff" 
+            :filename="tool.fileName"
+            class="mt-1"
+          />
         </div>
       </div>
     </div>
