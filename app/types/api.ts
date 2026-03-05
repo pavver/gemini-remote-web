@@ -23,8 +23,9 @@ export enum OrchestratorResponse {
   SESSION_LIST = 'SESSION_LIST',
   SESSION_STARTED = 'SESSION_STARTED',
   SESSION_STOPPED = 'SESSION_STOPPED',
-  PROXY_MESSAGE = 'PROXY_MESSAGE',
   ERROR = 'ERROR',
+  PROXY_MESSAGE = 'PROXY_MESSAGE',
+  PONG = 'PONG',
 }
 
 export interface SessionInfo {
@@ -63,6 +64,9 @@ export enum CLIMessageType {
   SESSION_STATE_REQUEST = 'SESSION_STATE_REQUEST',
   HISTORY_REQUEST = 'HISTORY_REQUEST',
   HISTORY_RESPONSE = 'HISTORY_RESPONSE',
+  PENDING_HISTORY_ITEM = 'PENDING_HISTORY_ITEM',
+  SUBSCRIBE_PTY = 'SUBSCRIBE_PTY',
+  UNSUBSCRIBE_PTY = 'UNSUBSCRIBE_PTY',
   OPEN_DIFF = 'OPEN_DIFF',
   DIFF_RESPONSE = 'DIFF_RESPONSE',
   EXECUTE_COMMAND = 'EXECUTE_COMMAND',
@@ -70,6 +74,7 @@ export enum CLIMessageType {
   RESET_SESSION = 'RESET_SESSION',
   SUBSCRIBE = 'SUBSCRIBE',
   UNSUBSCRIBE = 'UNSUBSCRIBE',
+  AUTH_SUBMIT = 'AUTH_SUBMIT',
 }
 
 export interface AnsiToken {
@@ -92,6 +97,7 @@ export interface HistoryItem {
   thought?: { summary: string };
   model?: string;
   tools?: RemoteToolCall[];
+  payload?: any;
 }
 
 export interface RemoteToolCall {
@@ -103,6 +109,7 @@ export interface RemoteToolCall {
   result?: string;
   fileDiff?: string;
   fileName?: string;
+  ptyId?: number;
 }
 
 export interface ConfirmationOption {
