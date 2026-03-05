@@ -9,6 +9,7 @@ import ChatMessageToolGroup from './ChatMessageToolGroup.vue';
 import ChatMessageConfirmation from './ChatMessageConfirmation.vue';
 import type { ConfirmationRequest } from '../../types/api';
 
+const sessionStore = useSessionStore();
 const emit = defineEmits(['stop-generation', 'confirm-action', 'load-history']);
 
 const props = defineProps<{
@@ -148,6 +149,26 @@ watch([() => props.history, () => props.isResponding, () => props.activeConfirma
         :request="activeConfirmation"
         @respond="data => emit('confirm-action', data)"
       />
+
+      <!-- Pending History Item -->
+      <div v-if="sessionStore.activeSession?.pendingHistoryItem" class="mt-2 opacity-80 grayscale-[0.5]">
+        <ChatMessageUser 
+          v-if="sessionStore.activeSession.pendingHistoryItem.type === 'user'" 
+          :text="sessionStore.activeSession.pendingHistoryItem.text || ''" 
+        />
+        <ChatMessageGemini 
+          v-else-if="sessionStore.activeSession.pendingHistoryItem.type === 'gemini'" 
+          :text="sessionStore.activeSession.pendingHistoryItem.text || ''" 
+        />
+        <ChatMessageToolGroup
+          v-else-if="sessionStore.activeSession.pendingHistoryItem.type === 'tool_group'"
+          :tools="sessionStore.activeSession.pendingHistoryItem.tools || []"
+        />
+        <ChatMessageThinking 
+          v-else-if="sessionStore.activeSession.pendingHistoryItem.type === 'thinking'" 
+          :thought="sessionStore.activeSession.pendingHistoryItem.thought || { summary: '' }" 
+        />
+      </div>
       
       <!-- Thinking indicator / Toast with Stop Button -->
       <div v-if="isResponding" class="flex flex-col gap-2 mt-2 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">

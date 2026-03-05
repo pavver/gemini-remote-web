@@ -5,11 +5,13 @@ export interface SessionState {
   id: string;
   dir: string;
   history: HistoryItem[];
+  pendingHistoryItem: HistoryItem | null;
   status: SystemStatus;
   streamingState: string;
   isActive: boolean;
   activePtyId: number | null;
   shellOutput: AnsiOutput;
+  lastPtyOutput: Record<number, string[]>; // Buffer of chunks per PTY
   toolArgsCache: Record<string, any>;
   lastToast: { id: number; message: string; severity: 'info' | 'warning' | 'error' } | null;
   responseStartTime: number | null;
@@ -32,6 +34,7 @@ export const useSessionStore = defineStore('sessions', () => {
         id,
         dir: '',
         history: [],
+        pendingHistoryItem: null,
         status: {
           model: undefined,
           ramUsage: '0 MB',
@@ -48,6 +51,7 @@ export const useSessionStore = defineStore('sessions', () => {
         isActive: true,
         activePtyId: null,
         shellOutput: [],
+        lastPtyOutput: {},
         toolArgsCache: {},
         lastToast: null,
         responseStartTime: null
@@ -66,6 +70,10 @@ export const useSessionStore = defineStore('sessions', () => {
 
     // Merge other properties
     Object.assign(session, partial);
+  }
+
+  function setPtyOutput(sessionId: string, ptyId: number, chunk: string) {
+    // No-op: we now use EventBus for live streaming and CLI buffer for replay
   }
 
   function extractArgs(session: SessionState, item: any) {
@@ -101,6 +109,13 @@ export const useSessionStore = defineStore('sessions', () => {
     }
   }
 
+  function setPendingHistoryItem(sessionId: string, item: HistoryItem | null) {
+    const session = sessions[sessionId];
+    if (session) {
+      session.pendingHistoryItem = item;
+    }
+  }
+
   function removeSession(id: string) {
     delete sessions[id];
     if (activeSessionId.value === id) activeSessionId.value = null;
@@ -113,6 +128,8 @@ export const useSessionStore = defineStore('sessions', () => {
     upsertSession, 
     appendShellOutput,
     addHistoryItem, 
+    setPtyOutput,
+    setPendingHistoryItem,
     removeSession 
   };
 });

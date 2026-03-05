@@ -1,5 +1,6 @@
 import { OrchestratorAction, OrchestratorResponse, CLIMessageType } from '../types/api';
 import { useSessionStore } from '../stores/sessionStore';
+import { eventBus } from '../utils/eventBus';
 
 // Shared state across all components
 const ws = ref<WebSocket | null>(null);
@@ -117,7 +118,13 @@ export function useOrchestrator() {
         break;
       
       case CLIMessageType.HISTORY_UPDATE:
+        console.log('[Orchestrator] History update received:', msg.payload.item.type, msg.payload.item);
         sessionStore.addHistoryItem(sessionId, msg.payload.item);
+        break;
+
+      case CLIMessageType.PENDING_HISTORY_ITEM:
+        console.log('[Orchestrator] Pending history item received:', msg.payload.item?.type, msg.payload.item);
+        sessionStore.setPendingHistoryItem(sessionId, msg.payload.item);
         break;
 
       case CLIMessageType.HISTORY_RESPONSE:
@@ -146,6 +153,11 @@ export function useOrchestrator() {
         break;
 
       case CLIMessageType.SHELL_OUTPUT:
+        console.log('[Orchestrator] Shell output received for PTY:', msg.payload.ptyId);
+        if (msg.payload.ptyId !== undefined) {
+           const chunk = typeof msg.payload.chunk === 'string' ? msg.payload.chunk : '';
+           eventBus.emitTerminalOutput(msg.payload.ptyId, chunk);
+        }
         sessionStore.appendShellOutput(sessionId, Array.isArray(msg.payload.chunk) ? msg.payload.chunk : [[{ text: msg.payload.chunk, fg: '', bg: '', bold: false, italic: false, underline: false, inverse: false }]]);
         break;
 
@@ -222,6 +234,20 @@ export function useOrchestrator() {
     send(OrchestratorAction.CLI_COMMAND, {
       session_id: sessionId,
       payload: { type: CLIMessageType.UNSUBSCRIBE, payload: { topic } }
+    });
+  }
+
+  function subscribePty(sessionId: string, ptyId: number, fromStart: boolean = true) {
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionId,
+      payload: { type: CLIMessageType.SUBSCRIBE_PTY, payload: { ptyId, fromStart } }
+    });
+  }
+
+  function unsubscribePty(sessionId: string, ptyId: number) {
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionId,
+      payload: { type: CLIMessageType.UNSUBSCRIBE_PTY, payload: { ptyId } }
     });
   }
 
@@ -316,6 +342,17 @@ export function useOrchestrator() {
     activeConfirmation.value = null;
   }
 
+  function sendShellInput(text: string, ptyId?: number) {
+    if (!sessionStore.activeSessionId) return;
+    send(OrchestratorAction.CLI_COMMAND, {
+      session_id: sessionStore.activeSessionId,
+      payload: { 
+        type: CLIMessageType.SHELL_INPUT, 
+        payload: { text, ptyId } 
+      }
+    });
+  }
+
   return { 
     isConnected, 
     isAuthenticated, 
@@ -329,10 +366,12 @@ export function useOrchestrator() {
     stopGeneration,
     requestSuggestions,
     sendConfirmation,
-    subscribe,
+    subscribe, 
     unsubscribe,
+    subscribePty,
+    unsubscribePty,
     requestHistory,
-    sendDiffResponse,
-    submitAuth
+    sendDiffResponse,    submitAuth,
+    sendShellInput
   };
 }

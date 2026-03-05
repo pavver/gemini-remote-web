@@ -1,8 +1,13 @@
 <script setup lang="ts">
+const { sendShellInput } = useOrchestrator();
+
 interface ToolCall {
   name: string;
   status: string;
   args?: any;
+  fileDiff?: string;
+  fileName?: string;
+  ptyId?: number;
 }
 
 defineProps<{
@@ -83,6 +88,7 @@ function formatArgs(args: any): string {
             </span>
 
             <span class="opacity-40 text-[9px] uppercase tracking-tighter">{{ tool.status }}</span>
+            <span v-if="tool.ptyId" class="text-[8px] text-emerald-500/50 ml-1">#{{ tool.ptyId }}</span>
           </div>
 
           <!-- Diff View for Tool Result -->
@@ -91,6 +97,14 @@ function formatArgs(args: any): string {
             :diff-content="tool.fileDiff" 
             :filename="tool.fileName"
             class="mt-1"
+          />
+
+          <!-- Terminal View for Shell Commands -->
+          <ChatPartsTerminalView
+            v-if="tool.ptyId"
+            :pty-id="tool.ptyId"
+            :is-active="['executing', 'confirming', 'awaiting_approval'].includes(tool.status.toLowerCase())"
+            @input="data => sendShellInput(data, tool.ptyId)"
           />
         </div>
       </div>
