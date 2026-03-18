@@ -70,7 +70,7 @@ export const useGeminiStore = defineStore('gemini', () => {
 
   function setProxyMode(sessionIdVal: string, sender: (payload: Record<string, unknown>) => void) {
     console.log('[GeminiStore] Setting proxy mode for session:', sessionIdVal);
-    resetChatState(true); 
+    resetChatState(); 
     proxyMode.value = true;
     activeSessionId.value = sessionIdVal;
     proxySender = sender;
@@ -120,14 +120,19 @@ export const useGeminiStore = defineStore('gemini', () => {
     });
   }
 
-  function resetChatState(keepConnection = false) {
+  function resetChatState() {
     messages.value = [];
     streamOutput.value = '';
     currentThought.value = null;
     userMessages.value = [];
     activeToasts.value = [];
     status.value = 'idle';
-    if (!keepConnection) isConnected.value = false;
+    isConnected.value = false;
+    proxyMode.value = false;
+    proxySender = null;
+    activeSessionId.value = null;
+    geminiSessionId.value = null;
+    loadingIndicator.value = { elapsedTime: 0, status: 'idle' };
   }
 
   function formatBytes(bytes: number) {
@@ -159,8 +164,10 @@ export const useGeminiStore = defineStore('gemini', () => {
 
     if (msg.type === 'response:chat:history') {
       const p = msg as unknown as ChatHistoryResponse;
+      // Filter out system messages from history to keep chat clean
+      const filteredMessages = p.messages.filter(m => m.type !== 'info' && m.type !== 'warning');
       // We reverse to show oldest first in the chat list (scrolling down to newest)
-      messages.value = p.messages.reverse();
+      messages.value = filteredMessages.reverse();
       return;
     }
 
@@ -221,21 +228,35 @@ export const useGeminiStore = defineStore('gemini', () => {
       case 'event:chat:stream':
         if (payload) {
             const p = payload as ChatStreamEvent;
-            streamOutput.value += p.chunk;
             
             // Real-time update for messages array
             let lastMsg = messages.value[messages.value.length - 1];
-            if (!lastMsg || lastMsg.type !== 'gemini') {
+            
+            // Deduplication: if the exact same chunk was just added, ignore it
+            // (Only for very recent chunks to avoid legitimate repetitions)
+            if (lastMsg && lastMsg.content[0] && lastMsg.content[0].text?.endsWith(p.chunk)) {
+              // This might be a duplicate event from the server
+              // We only deduplicate if it's a very short chunk or identical timing
+              // For now, let's trust the protocol fix in the CLI more, but keep this simple guard
+            }
+
+            if (!lastMsg || !lastMsg.id.startsWith('stream-')) {
               lastMsg = {
-                id: `gemini-${Date.now()}`,
+                id: `stream-${Date.now()}`,
                 timestamp: new Date().toISOString(),
                 type: 'gemini',
                 content: [{ text: '' }]
               };
               messages.value.push(lastMsg);
             }
+            
             if (lastMsg.content[0]) {
-              lastMsg.content[0].text = (lastMsg.content[0].text || '') + p.chunk;
+              // Simple check: if chunk is already there at the VERY end, don't append
+              const currentText = lastMsg.content[0].text || '';
+              if (!currentText.endsWith(p.chunk) || p.chunk.length > 5) {
+                lastMsg.content[0].text = currentText + p.chunk;
+                streamOutput.value += p.chunk;
+              }
             }
 
             currentThought.value = null;
@@ -343,6 +364,8 @@ export const useGeminiStore = defineStore('gemini', () => {
   function sendAction(action: string, payload: Record<string, unknown> = {}) {
     if (proxyMode.value && proxySender) {
       proxySender({ action, ...payload });
+    } else {
+      console.warn(`[GeminiStore] Ignored action ${action}: Proxy not active`);
     }
   }
 
@@ -373,6 +396,10 @@ export const useGeminiStore = defineStore('gemini', () => {
   }
 
   function sendMessage(text: string) {
+    if (!isConnected.value || !proxyMode.value) {
+      console.warn('[GeminiStore] Cannot send message: Not connected to a session');
+      return;
+    }
     streamOutput.value = '';
     currentThought.value = null;
     sendAction('chat:send', { text });
