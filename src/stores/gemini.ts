@@ -12,12 +12,15 @@ import type {
   SessionStatusState,
   ModelState,
   SessionIdState,
-  RamUsageState,
+  RamRssState,
+  RamHeapTotalState,
+  RamHeapUsedState,
   AgentsState,
   McpServersState,
   EditorState,
   LastMessageIdState,
-  LoadingIndicatorState,
+  LoadingPhraseState,
+  LoadingElapsedState,
   ChatStreamEvent,
   SettingsHashState,
   RemoteSettingDefinition,
@@ -44,7 +47,7 @@ export const useGeminiStore = defineStore('gemini', () => {
   const ramUsage = ref<string | null>(null); // formatted string
   const agents = ref<AgentInfo[]>([]);
   const mcpServers = ref<string[]>([]);
-  const loadingIndicator = ref<LoadingIndicatorState>({ elapsedTime: 0, status: 'idle' });
+  const loadingIndicator = ref<{ phrase: string | null, elapsedTime: number }>({ phrase: null, elapsedTime: 0 });
   const activeEditor = ref<string | null>(null);
   const lastMessageId = ref<string | null>(null);
   const settingsHash = ref<string | null>(null);
@@ -83,8 +86,11 @@ export const useGeminiStore = defineStore('gemini', () => {
       'state:session:model', 
       'state:system:quota',
       'state:system:memory',
-      'state:system:loading_indicator',
-      'state:system:ramUsage',
+      'state:system:loading_phrase',
+      'state:system:loading_elapsed',
+      'state:system:ram:rss',
+      'state:system:ram:heap_total',
+      'state:system:ram:heap_used',
       'state:system:agents',
 
       'state:system:mcp:servers',
@@ -132,7 +138,7 @@ export const useGeminiStore = defineStore('gemini', () => {
     proxySender = null;
     activeSessionId.value = null;
     geminiSessionId.value = null;
-    loadingIndicator.value = { elapsedTime: 0, status: 'idle' };
+    loadingIndicator.value = { elapsedTime: 0, phrase: null };
   }
 
   function formatBytes(bytes: number) {
@@ -191,8 +197,11 @@ export const useGeminiStore = defineStore('gemini', () => {
       case 'state:system:memory':
         if (payload) memory.value = payload as MemoryState;
         break;
-      case 'state:system:loading_indicator':
-        if (payload) loadingIndicator.value = payload as LoadingIndicatorState;
+      case 'state:system:loading_phrase':
+        if (payload) loadingIndicator.value.phrase = (payload as LoadingPhraseState).phrase;
+        break;
+      case 'state:system:loading_elapsed':
+        if (payload) loadingIndicator.value.elapsedTime = (payload as LoadingElapsedState).elapsed;
         break;
       case 'state:session:model':
         if (payload) activeModel.value = (payload as ModelState).model;
@@ -200,11 +209,17 @@ export const useGeminiStore = defineStore('gemini', () => {
       case 'state:session:id':
         if (payload) geminiSessionId.value = (payload as SessionIdState).id;
         break;
-      case 'state:system:ramUsage':
+      case 'state:system:ram:rss':
         if (payload) {
-          const p = payload as RamUsageState;
+          const p = payload as RamRssState;
           ramUsage.value = formatBytes(p.rss);
         }
+        break;
+      case 'state:system:ram:heap_total':
+        // Optional: store heapTotal if needed
+        break;
+      case 'state:system:ram:heap_used':
+        // Optional: store heapUsed if needed
         break;
       case 'state:system:agents':
         if (payload) agents.value = (payload as AgentsState).agents || [];

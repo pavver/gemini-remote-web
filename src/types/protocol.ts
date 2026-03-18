@@ -76,10 +76,24 @@ export interface LastMessageIdState {
   id: string;
 }
 
-export interface LoadingIndicatorState {
-  phrase?: string;
-  elapsedTime: number;
-  status: 'idle' | 'responding' | 'waiting';
+export interface LoadingPhraseState {
+  phrase: string | null;
+}
+
+export interface LoadingElapsedState {
+  elapsed: number;
+}
+
+export interface RamRssState {
+  rss: number;
+}
+
+export interface RamHeapTotalState {
+  heapTotal: number;
+}
+
+export interface RamHeapUsedState {
+  heapUsed: number;
 }
 
 export interface RamUsageState {
@@ -159,10 +173,13 @@ export type OrchestratorResponse =
 export type AllTopics = 
   | 'state:system:quota'
   | 'state:system:memory'
-  | 'state:system:loading_indicator'
+  | 'state:system:loading_phrase'
+  | 'state:system:loading_elapsed'
   | 'state:system:mcp:servers'
   | 'state:system:agents'
-  | 'state:system:ramUsage'
+  | 'state:system:ram:rss'
+  | 'state:system:ram:heap_total'
+  | 'state:system:ram:heap_used'
   | 'state:session:status'
   | 'state:session:model'
   | 'state:session:id'
