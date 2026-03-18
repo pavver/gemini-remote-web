@@ -41,10 +41,10 @@
               </div>
               <div class="message-content col">
                 <div class="agent-name q-mb-xs text-caption text-grey-7 text-weight-bold">
-                  {{ msg.type === 'gemini' ? (msg.model || 'Gemini') : 'System' }}
+                  {{ msg.type === 'gemini' ? (msg.model || 'Gemini') : (msg.type === 'error' ? 'Помилка' : (msg.type === 'warning' ? 'Попередження' : 'Система')) }}
                 </div>
                 <div class="message-bubble bot-bubble" 
-                     :class="{ 'error-bubble': msg.type === 'error', 'info-bubble': msg.type === 'info' || msg.type === 'warning' }">
+                     :class="{ 'error-bubble': msg.type === 'error', 'warning-bubble': msg.type === 'warning', 'info-bubble': msg.type === 'info' }">
                   <pre class="content-text">{{ msg.content[0]?.text }}</pre>
                   
                   <!-- Streaming Progress -->
@@ -70,13 +70,13 @@
           </div>
 
           <!-- Thinking Spinner -->
-          <div v-if="store.status === 'thinking' && store.loadingIndicator.status === 'idle'" class="row justify-start items-center q-mt-lg">
+          <div v-if="store.status === 'thinking' && !store.loadingIndicator.phrase" class="row justify-start items-center q-mt-lg">
             <q-avatar size="36px" color="primary" text-color="white" icon="auto_awesome" class="q-mr-md shadow-2" />
             <q-spinner-dots color="primary" size="2em" />
           </div>
 
           <!-- New Loading Indicator (Loader + Text + Timer) -->
-          <div v-if="store.loadingIndicator.status !== 'idle'" class="row justify-start items-center q-mt-lg q-ml-sm">
+          <div v-if="store.status !== 'idle' && store.status !== 'generating' || (store.status === 'generating' && !store.messages.some(m => m.type === 'gemini'))" class="row justify-start items-center q-mt-lg q-ml-sm">
             <q-spinner-ios color="primary" size="24px" class="q-mr-md" />
             <div class="column">
               <div class="text-caption text-grey-8 text-weight-medium">{{ store.loadingIndicator.phrase || 'Працюю...' }}</div>
@@ -221,8 +221,26 @@ watch([() => store.messages.length, () => store.streamOutput, () => store.active
 .body--dark .bot-bubble { color: #ececec; }
 .body--light .bot-bubble { color: #1f1f1f; }
 
-.error-bubble { color: #d32f2f; }
-.info-bubble { opacity: 0.8; font-style: italic; }
+.error-bubble { 
+  color: #d32f2f; 
+  background: rgba(211, 47, 47, 0.05);
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.warning-bubble { 
+  color: #f57c00; 
+  background: rgba(245, 124, 0, 0.05);
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.info-bubble { 
+  opacity: 0.9; 
+  font-style: italic; 
+  background: rgba(0, 0, 0, 0.03);
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.body--dark .info-bubble { background: rgba(255, 255, 255, 0.05); }
 
 .avatar-col {
   flex-shrink: 0;

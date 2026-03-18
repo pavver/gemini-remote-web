@@ -170,8 +170,32 @@ export const useGeminiStore = defineStore('gemini', () => {
 
     if (msg.type === 'response:chat:history') {
       const p = msg as unknown as ChatHistoryResponse;
-      // We reverse to show oldest first in the chat list (scrolling down to newest)
-      messages.value = p.messages.reverse();
+      const historyMessages = p.messages.reverse();
+      
+      const messageMap = new Map<string, RemoteMessageRecord>();
+      
+      // 1. Add current messages (recent-feedbacks, etc)
+      // Use a specialized key for system messages to prevent duplication
+      messages.value.forEach(m => {
+        const isSystem = m.type === 'info' || m.type === 'warning' || m.type === 'error';
+        const key = isSystem ? `sys:${m.type}:${m.content[0]?.text}` : m.id;
+        messageMap.set(key, m);
+      });
+      
+      // 2. Overlay history messages
+      historyMessages.forEach(hMsg => {
+        const isSystem = hMsg.type === 'info' || hMsg.type === 'warning' || hMsg.type === 'error';
+        const key = isSystem ? `sys:${hMsg.type}:${hMsg.content[0]?.text}` : hMsg.id;
+        // History always wins/replaces temporary state
+        messageMap.set(key, hMsg);
+      });
+      
+      const newMessages = Array.from(messageMap.values());
+      
+      // 3. Sort by timestamp
+      newMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      
+      messages.value = newMessages;
       return;
     }
 
