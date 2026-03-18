@@ -13,8 +13,6 @@ import type {
   ModelState,
   SessionIdState,
   RamRssState,
-  RamHeapTotalState,
-  RamHeapUsedState,
   AgentsState,
   McpServersState,
   EditorState,
