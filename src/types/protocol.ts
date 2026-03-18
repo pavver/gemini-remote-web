@@ -84,6 +84,15 @@ export interface LoadingElapsedState {
   elapsed: number;
 }
 
+export interface FeedbackEvent {
+  severity: 'info' | 'warning' | 'error';
+  message: string;
+}
+
+export interface RecentFeedbacksState {
+  feedbacks: FeedbackEvent[];
+}
+
 export interface RamRssState {
   rss: number;
 }
@@ -173,6 +182,7 @@ export type OrchestratorResponse =
 export type AllTopics = 
   | 'state:system:quota'
   | 'state:system:memory'
+  | 'state:system:recent_feedbacks'
   | 'state:system:loading_phrase'
   | 'state:system:loading_elapsed'
   | 'state:system:mcp:servers'

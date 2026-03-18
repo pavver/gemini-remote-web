@@ -19,6 +19,7 @@ import type {
   LastMessageIdState,
   LoadingPhraseState,
   LoadingElapsedState,
+  RecentFeedbacksState,
   ChatStreamEvent,
   SettingsHashState,
   RemoteSettingDefinition,
@@ -84,6 +85,7 @@ export const useGeminiStore = defineStore('gemini', () => {
       'state:session:model', 
       'state:system:quota',
       'state:system:memory',
+      'state:system:recent_feedbacks',
       'state:system:loading_phrase',
       'state:system:loading_elapsed',
       'state:system:ram:rss',
@@ -168,10 +170,8 @@ export const useGeminiStore = defineStore('gemini', () => {
 
     if (msg.type === 'response:chat:history') {
       const p = msg as unknown as ChatHistoryResponse;
-      // Filter out system messages from history to keep chat clean
-      const filteredMessages = p.messages.filter(m => m.type !== 'info' && m.type !== 'warning');
       // We reverse to show oldest first in the chat list (scrolling down to newest)
-      messages.value = filteredMessages.reverse();
+      messages.value = p.messages.reverse();
       return;
     }
 
@@ -194,6 +194,24 @@ export const useGeminiStore = defineStore('gemini', () => {
         break;
       case 'state:system:memory':
         if (payload) memory.value = payload as MemoryState;
+        break;
+      case 'state:system:recent_feedbacks':
+        if (payload) {
+          const p = payload as RecentFeedbacksState;
+          p.feedbacks.forEach(f => {
+            // Check if this feedback is already in messages (by text)
+            const exists = messages.value.some(m => m.content[0]?.text === f.message && (m.type === 'info' || m.type === 'warning' || m.type === 'error'));
+            if (!exists) {
+              const msgType = f.severity === 'error' ? 'error' : (f.severity === 'warning' ? 'warning' : 'info');
+              messages.value.unshift({
+                id: `recent-fb-${Date.now()}-${Math.random()}`,
+                timestamp: new Date().toISOString(),
+                type: msgType,
+                content: [{ text: f.message }]
+              });
+            }
+          });
+        }
         break;
       case 'state:system:loading_phrase':
         if (payload) loadingIndicator.value.phrase = (payload as LoadingPhraseState).phrase;
@@ -310,6 +328,16 @@ export const useGeminiStore = defineStore('gemini', () => {
         if (payload) {
             const p = payload as { message: string, severity?: string };
             const id = `fb-${Date.now()}`;
+
+            // Add to chat messages
+            const msgType = p.severity === 'error' ? 'error' : (p.severity === 'warning' ? 'warning' : 'info');
+            messages.value.push({
+              id,
+              timestamp: new Date().toISOString(),
+              type: msgType,
+              content: [{ text: p.message }]
+            });
+
             activeToasts.value.push({ id, message: p.message, finished: true, timestamp: Date.now() });
             setTimeout(() => { activeToasts.value = activeToasts.value.filter(t => t.id !== id); }, 5000);
         }
@@ -318,6 +346,16 @@ export const useGeminiStore = defineStore('gemini', () => {
         if (payload) {
             const p = payload as { message: string, type: string };
             const id = `tm-${Date.now()}`;
+
+            // Add to chat messages
+            const msgType = p.type === 'warning' ? 'warning' : 'info';
+            messages.value.push({
+              id,
+              timestamp: new Date().toISOString(),
+              type: msgType,
+              content: [{ text: p.message }]
+            });
+
             activeToasts.value.push({ id, message: p.message, finished: true, timestamp: Date.now() });
             setTimeout(() => { activeToasts.value = activeToasts.value.filter(t => t.id !== id); }, 5000);
         }
@@ -328,6 +366,15 @@ export const useGeminiStore = defineStore('gemini', () => {
             const id = `retry-${Date.now()}`;
             const modelText = p.model ? ` (${p.model})` : '';
             const message = `Повторна спроба ${p.attempt}/${p.maxAttempts}${modelText}...`;
+
+            // Add to chat messages
+            messages.value.push({
+              id,
+              timestamp: new Date().toISOString(),
+              type: 'info',
+              content: [{ text: message }]
+            });
+
             activeToasts.value.push({ 
                 id, 
                 message, 
