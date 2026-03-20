@@ -18,6 +18,7 @@
         <status-header 
           @toggle-left="leftDrawerOpen = !leftDrawerOpen" 
           @open-settings="settingsOpen = true"
+          @open-system-details="systemDetailsOpen = true"
         />
 
         <!-- Лівий сайдбар: Сесії -->
@@ -72,7 +73,12 @@
           <router-view />
         </q-page-container>
 
+        <!-- Діалоги -->
         <settings-dialog v-model="settingsOpen" />
+        
+        <q-dialog v-model="systemDetailsOpen">
+          <system-details-dialog />
+        </q-dialog>
 
         <!-- Глобальні підтвердження -->
         <q-dialog :model-value="!!gemini.activeRequest" persistent position="bottom">
@@ -109,6 +115,7 @@ import SessionItem from '../components/Sidebar/SessionItem.vue';
 import UserPanel from '../components/Sidebar/UserPanel.vue';
 import NewSessionDialog from '../components/NewSessionDialog.vue';
 import SettingsDialog from '../components/Dialogs/SettingsDialog.vue';
+import SystemDetailsDialog from '../components/Dialogs/SystemDetailsDialog.vue';
 
 const $q = useQuasar();
 const auth = useAuthStore();
@@ -116,6 +123,7 @@ const gemini = useGeminiStore();
 
 const leftDrawerOpen = ref(false);
 const settingsOpen = ref(false);
+const systemDetailsOpen = ref(false);
 const isLoading = ref(true);
 
 onMounted(async () => {

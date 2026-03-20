@@ -17,7 +17,11 @@
       <q-space />
 
       <!-- Системні метрики (тільки для десктопа/планшета) -->
-      <div v-if="gemini.isConnected" class="gt-sm row items-center q-gutter-x-md q-mr-lg">
+      <div 
+        v-if="gemini.isConnected" 
+        class="gt-sm row items-center q-gutter-x-md q-mr-lg cursor-pointer hover-bright transition-all"
+        @click="$emit('open-system-details')"
+      >
         <div class="row items-center text-caption text-grey-7">
           <q-icon name="memory" size="16px" class="q-mr-xs" />
           {{ gemini.ramUsage || '0 MB' }}
@@ -38,6 +42,7 @@
             track-color="grey-4"
           />
         </div>
+        <q-tooltip>Системні ресурси та статистика</q-tooltip>
       </div>
 
       <div class="row items-center q-gutter-x-sm">
@@ -99,7 +104,7 @@ import { useGeminiStore } from '../stores/gemini';
 const $q = useQuasar();
 const gemini = useGeminiStore();
 
-defineEmits(['toggle-left', 'open-settings']);
+defineEmits(['toggle-left', 'open-settings', 'open-system-details']);
 
 function formatNumber(num: number) {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -107,3 +112,18 @@ function formatNumber(num: number) {
   return num.toString();
 }
 </script>
+
+<style scoped>
+.transition-all {
+  transition: all 0.2s ease;
+}
+
+.hover-bright:hover {
+  filter: brightness(1.2);
+  opacity: 1 !important;
+}
+
+.hover-bright:hover .text-grey-7 {
+  color: var(--q-primary) !important;
+}
+</style>

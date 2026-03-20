@@ -12,5 +12,21 @@ export default {
       credentials: 'Please enter credentials',
       failed: 'Invalid credentials or Orchestrator offline'
     }
+  },
+  system: {
+    title: 'System Resources',
+    project: 'Project',
+    statistics: 'Session Statistics',
+    mcpServers: 'Active MCP Servers',
+    agents: 'Available Agents',
+    noStats: 'No stats available yet. Start a conversation!',
+    noMcp: 'No active MCP servers',
+    noAgents: 'No agents detected',
+    refresh: 'Refresh Stats',
+    quotaUsage: 'Quota Usage',
+    resetsAt: 'Resets at {time}'
+  },
+  user: {
+    signOut: 'Sign Out'
   }
 };
