@@ -144,11 +144,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function startNewSession(dir: string) {
-    const dirs = [dir, ...recentDirs.value.filter(d => d !== dir)].slice(0, 5);
+    const cleanDir = dir.trim();
+    if (!cleanDir) return;
+    
+    // Сортування: вибраний шлях стає першим, видаляємо дублікати, ліміт 10
+    const dirs = [cleanDir, ...recentDirs.value.filter(d => d !== cleanDir)].slice(0, 10);
     recentDirs.value = dirs;
     localStorage.setItem(RECENT_DIRS_KEY, JSON.stringify(dirs));
+    
     isConnected.value = false;
-    sendToOrchestrator({ action: 'START_SESSION', dir });
+    sendToOrchestrator({ action: 'START_SESSION', dir: cleanDir });
   }
 
   function stopSession(sessionId: string) {
