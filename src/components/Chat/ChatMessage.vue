@@ -1,55 +1,55 @@
 <template>
-  <div class="chat-message-row q-mb-md" :class="message.type === 'user' ? 'row justify-end' : 'row justify-start'">
+  <div class="chat-message-row q-mb-sm row no-wrap items-start" :class="message.type === 'user' ? 'justify-end' : 'justify-start'">
     
-    <!-- Gemini / System / Error Avatar -->
-    <div v-if="message.type !== 'user'" class="avatar-col q-mr-sm gt-xs">
+    <!-- Аватар бота (тільки зліва) -->
+    <div v-if="message.type !== 'user'" class="avatar-col q-mr-xs gt-xs flex flex-center">
       <q-avatar 
-        size="32px" 
+        size="30px" 
         :color="avatarConfig.color" 
         text-color="white" 
         :icon="avatarConfig.icon"
-        class="shadow-1 msg-avatar"
+        class="msg-avatar shadow-1"
       />
     </div>
 
     <div class="message-content-wrapper" :class="message.type === 'user' ? 'user-wrapper' : 'bot-wrapper'">
       
-      <!-- Agent Name (only for bot) -->
-      <div 
-        v-if="message.type !== 'user'"
-        class="agent-name q-mb-xs text-caption text-weight-bold text-left"
-      >
-        {{ displayName }}
-      </div>
-
-      <!-- Thinking block -->
+      <!-- Блок думок -->
       <thinking-block 
         v-if="message.type === 'gemini' && showThinking" 
         :thought="thought" 
         :status="status" 
       />
 
-      <!-- Message Bubble -->
+      <!-- Хмаринка повідомлення -->
       <div 
-        class="message-bubble shadow-1" 
+        class="message-bubble" 
         :class="bubbleClass"
       >
         <div class="message-body">
+          <!-- Ім'я агента всередині бульбашки зверху -->
+          <div 
+            v-if="message.type !== 'user'"
+            class="bubble-agent-name"
+          >
+            {{ displayName }}
+          </div>
+
           <message-content :content="message.content[0]?.text || ''" />
           
-          <!-- Inner Timestamp -->
+          <!-- Мітка часу всередині бульбашки знизу -->
           <div class="bubble-timestamp text-right">
             {{ formatTime(message.timestamp) }}
           </div>
         </div>
         
-        <!-- Streaming Progress -->
+        <!-- Прогрес генерації -->
         <q-linear-progress 
           v-if="isGenerating" 
           indeterminate 
           color="primary" 
           size="2px" 
-          class="q-mt-sm" 
+          class="q-mt-xs" 
         />
       </div>
     </div>
@@ -111,6 +111,12 @@ function formatTime(iso: string) {
   max-width: 100%;
 }
 
+.avatar-col {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
 .message-content-wrapper {
   max-width: 92%;
 }
@@ -122,12 +128,13 @@ function formatTime(iso: string) {
 }
 
 .message-bubble {
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
   position: relative;
   transition: all 0.2s ease;
   display: inline-block;
-  min-width: 60px;
+  min-width: 80px;
+  border: 1px solid transparent; /* Однаковий розмір в обох темах */
 }
 
 .message-body {
@@ -135,10 +142,19 @@ function formatTime(iso: string) {
   flex-direction: column;
 }
 
-.bubble-timestamp {
+.bubble-agent-name {
   font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   opacity: 0.5;
-  margin-top: 2px;
+  margin-bottom: 1px;
+}
+
+.bubble-timestamp {
+  font-size: 8px;
+  opacity: 0.5;
+  margin-top: 1px;
   align-self: flex-end;
   line-height: 1;
 }
@@ -148,44 +164,34 @@ function formatTime(iso: string) {
   background-color: var(--q-primary);
   color: white;
   border-bottom-right-radius: 2px;
+  box-shadow: 0 1px 4px rgba(var(--q-primary), 0.2);
 }
 
 .user-bubble-dark {
   background-color: #2563eb;
   color: white;
   border-bottom-right-radius: 2px;
-}
-
-.user-bubble-light .bubble-timestamp,
-.user-bubble-dark .bubble-timestamp {
-  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255,255,255,0.1);
 }
 
 /* Bot Bubbles */
 .bot-bubble-light {
   background-color: #ffffff;
   color: #1e293b;
-  border: 1px solid #e2e8f0;
+  border-color: #e2e8f0;
   border-bottom-left-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
 .bot-bubble-dark {
   background-color: #1e293b;
   color: #f1f5f9;
-  border: 1px solid #334155;
+  border-color: #334155;
   border-bottom-left-radius: 2px;
-}
-
-.agent-name {
-  opacity: 0.6;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  font-size: 9px;
 }
 
 .msg-avatar {
   transition: transform 0.2s ease;
-  margin-top: 14px;
 }
 
 .user-wrapper {

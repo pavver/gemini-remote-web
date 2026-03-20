@@ -1,6 +1,6 @@
 <template>
   <div class="welcome-screen column flex-center text-center q-pa-xl">
-    <div class="welcome-card row flex-center rounded-borders q-pa-xl shadow-1">
+    <div class="welcome-card row flex-center rounded-borders q-pa-xl">
       <q-icon name="auto_awesome" size="100px" color="primary" class="q-mb-lg floating-icon" />
       <div class="text-h3 text-weight-bold q-mb-md font-exo">Gemini CLI</div>
       <div class="text-subtitle1 text-grey-7 q-mb-xl max-width-600">
@@ -37,6 +37,17 @@ const tips = [
 .welcome-card {
   max-width: 800px;
   width: 100%;
+  transition: all 0.3s ease;
+}
+
+.body--light .welcome-card {
+  background: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.body--dark .welcome-card {
+  background: #1d1d1d;
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .max-width-600 {
@@ -48,8 +59,13 @@ const tips = [
   transition: all 0.2s ease;
 }
 
+.body--light .tip-card {
+  background: white !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+}
+
 .body--dark .tip-card {
-  border-color: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
 }
 
 .tip-card:hover {

@@ -27,7 +27,7 @@
             :show-thinking="isLastGeminiMessage(msg.id)"
           />
 
-          <!-- Індикатор завантаження (Loader + Text + Timer) -->
+          <!-- Індикатор завантаження -->
           <div v-if="showLoadingIndicator" class="row justify-start items-center q-mt-lg q-ml-sm q-mb-xl">
             <q-spinner-ios color="primary" size="24px" class="q-mr-md" />
             <div class="column">
@@ -45,7 +45,7 @@
       <!-- Область введення -->
       <div class="input-section q-pa-md" :class="$q.dark.isActive ? 'bg-grey-10' : 'bg-grey-1'">
         <div class="input-box-container mx-auto">
-          <div class="input-box-wrapper shadow-up-4" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+          <div class="input-box-wrapper" :class="$q.dark.isActive ? 'input-wrapper-dark' : 'input-wrapper-light'">
             <q-input 
               v-model="input" 
               borderless
@@ -124,11 +124,9 @@ function send() {
 }
 
 function stop() {
-  // На майбутнє: додати метод stopAction у store
   // store.sendAction('chat:stop');
 }
 
-// Авто-прокрутка
 watch([() => store.messages.length, () => store.streamOutput, () => store.loadingIndicator.elapsedTime], () => {
   nextTick(() => {
     scrollArea.value?.setScrollPercentage('vertical', 1);
@@ -149,7 +147,7 @@ watch([() => store.messages.length, () => store.streamOutput, () => store.loadin
 .chat-container {
   height: 100%;
   width: 100%;
-  max-width: 1000px; /* Трохи розширимо для комфорту */
+  max-width: 1000px;
 }
 
 .chat-scroll-area {
@@ -176,17 +174,26 @@ watch([() => store.messages.length, () => store.streamOutput, () => store.loadin
   border-radius: 24px !important;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border: 1px solid rgba(0,0,0,0.05);
 }
 
-.body--dark .input-box-wrapper {
-  border-color: rgba(255,255,255,0.05);
+.input-wrapper-light {
+  background: white;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.input-wrapper-dark {
+  background: #1e293b;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .input-box-wrapper:focus-within {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   transform: translateY(-2px);
-  border-color: rgba(var(--q-primary), 0.3);
+  border-color: rgba(var(--q-primary), 0.5);
+}
+
+.input-wrapper-light:focus-within {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 
 .main-input {
