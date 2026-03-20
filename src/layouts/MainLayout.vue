@@ -9,7 +9,7 @@
 
     <template v-else>
       <!-- Екран авторизації -->
-      <div v-if="!auth.isAuthenticated" class="fullscreen flex flex-center" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-2'">
+      <div v-if="!auth.isAuthenticated" class="auth-wrapper flex flex-center" :class="$q.dark.isActive ? 'bg-black' : 'bg-grey-2'">
         <login-card />
       </div>
 
@@ -131,5 +131,12 @@ function openNewSessionDialog() {
 <style>
 .rounded-borders {
   border-radius: 8px !important;
+}
+
+.auth-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  padding: 24px 16px;
+  overflow-y: auto;
 }
 </style>
