@@ -2,7 +2,7 @@
   <div class="chat-outer-wrapper" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     
     <!-- Стан завантаження сесії -->
-    <div v-if="!store.isConnected && auth.activeSessionId" class="session-loading-overlay column flex-center">
+    <div v-if="!auth.isConnected && auth.activeSessionId" class="session-loading-overlay column flex-center">
       <q-spinner-cube color="primary" size="60px" />
       <div class="text-h6 q-mt-md text-grey-7 font-exo">Підключення до сесії...</div>
     </div>

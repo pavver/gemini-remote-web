@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false);
   const sessions = ref<SessionInfo[]>([]);
   const activeSessionId = ref<string | null>(null);
+  const isConnected = ref(false); // Статус підключення до конкретної сесії CLI
   const recentDirs = ref<string[]>(JSON.parse(localStorage.getItem(RECENT_DIRS_KEY) || '[]'));
 
   function connectOrchestrator() {
@@ -27,7 +28,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     ws.value.onmessage = (event) => {
       try {
-        console.log('[Orchestrator WS RAW]', event.data);
         const resp = JSON.parse(event.data) as OrchestratorResponse;
         handleOrchestratorMessage(resp);
       } catch (e) {
@@ -38,6 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
     ws.value.onclose = () => {
       isAuthenticated.value = false;
       isAuthenticating.value = false;
+      isConnected.value = false;
     };
   }
 
@@ -57,12 +58,10 @@ export const useAuthStore = defineStore('auth', () => {
       case 'SESSION_LIST':
         sessions.value = resp.sessions;
         
-        // Check if active session still exists in the list
         if (activeSessionId.value && !sessions.value.some(s => s.id === activeSessionId.value)) {
-          console.warn('[AuthStore] Active session no longer exists in orchestrator list');
           activeSessionId.value = null;
+          isConnected.value = false;
           geminiStore.resetChatState();
-          $q.notify({ type: 'warning', message: 'Активну сесію було видалено' });
         }
 
         if (sessions.value.length > 0 && !activeSessionId.value) {
@@ -71,19 +70,20 @@ export const useAuthStore = defineStore('auth', () => {
         }
         break;
       case 'SESSION_STARTED':
-        geminiStore.resetChatState();
+        isConnected.value = false; // Скидаємо перед підключенням до нової
         connectToSession(resp.session_id);
         sendToOrchestrator({ action: 'LIST_SESSIONS' });
         break;
       case 'SESSION_STOPPED':
         if (activeSessionId.value === resp.session_id) {
           activeSessionId.value = null;
+          isConnected.value = false;
           geminiStore.resetChatState();
-          $q.notify({ type: 'warning', message: `Сесія ${resp.session_id.slice(0, 8)} зупинена` });
         }
         sendToOrchestrator({ action: 'LIST_SESSIONS' });
         break;
       case 'SESSION_CONNECTED':
+        isConnected.value = true; // Тепер ми точно підключені до CLI
         geminiStore.setProxyMode(resp.session_id, (payload) => {
           sendToOrchestrator({ action: 'CLI_COMMAND', session_id: resp.session_id, payload });
         });
@@ -147,6 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
     const dirs = [dir, ...recentDirs.value.filter(d => d !== dir)].slice(0, 5);
     recentDirs.value = dirs;
     localStorage.setItem(RECENT_DIRS_KEY, JSON.stringify(dirs));
+    isConnected.value = false;
     sendToOrchestrator({ action: 'START_SESSION', dir });
   }
 
@@ -156,6 +157,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function connectToSession(sessionId: string) {
     if (activeSessionId.value !== sessionId) {
+      isConnected.value = false;
       geminiStore.resetChatState();
     }
     activeSessionId.value = sessionId;
@@ -177,6 +179,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     ws.value?.close();
     isAuthenticated.value = false;
+    isConnected.value = false;
     localStorage.removeItem(AUTH_KEY);
   }
 
@@ -184,6 +187,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isAuthenticating,
     isAuthenticated,
+    isConnected,
     sessions,
     activeSessionId,
     recentDirs,
