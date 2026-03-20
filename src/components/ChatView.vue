@@ -17,28 +17,34 @@
           <welcome-screen v-if="store.messages.length === 0" />
 
           <!-- Список повідомлень -->
-          <chat-message 
-            v-for="msg in store.messages" 
-            :key="msg.id" 
-            :message="msg"
-            :is-generating="store.status === 'generating' && isLastGeminiMessage(msg.id)"
-            :thought="isLastGeminiMessage(msg.id) ? store.currentThought : null"
-            :status="store.status"
-            :show-thinking="isLastGeminiMessage(msg.id)"
+          <template v-for="msg in store.messages" :key="msg.id">
+            <chat-message 
+              :message="msg"
+              :is-generating="!!(store.status === 'generating' && isCurrentlyStreaming(msg.id))"
+              :thought="isCurrentlyStreaming(msg.id) ? store.currentThought : null"
+              :status="store.status"
+              :show-thinking="!!(isCurrentlyStreaming(msg.id) || (msg.thoughts && msg.thoughts.length > 0))"
+            />
+          </template>
+
+          <!-- Системні тоасти (процеси, гачки, MCP) -->
+          <status-bubble 
+            v-for="toast in store.activeToasts" 
+            :key="toast.id"
+            :message="toast.message"
+            :loading="!toast.finished"
+            :icon="toast.finished ? 'check_circle' : undefined"
           />
 
-          <!-- Індикатор завантаження -->
-          <div v-if="showLoadingIndicator" class="row justify-start items-center q-mt-lg q-ml-sm q-mb-xl">
-            <q-spinner-ios color="primary" size="24px" class="q-mr-md" />
-            <div class="column">
-              <div class="text-caption text-grey-8 text-weight-medium">
-                {{ store.loadingIndicator.phrase || 'Працюю...' }}
-              </div>
-              <div class="text-caption text-grey-6">
-                (esc для скасування, {{ formatSeconds(store.loadingIndicator.elapsedTime) }})
-              </div>
-            </div>
-          </div>
+          <!-- Головний індикатор завантаження (Thinking/Working) -->
+          <status-bubble 
+            v-if="showLoadingIndicator"
+            :message="store.loadingIndicator.phrase || 'Працюю...'"
+            :caption="`(esc для скасування, ${formatSeconds(store.loadingIndicator.elapsedTime)})`"
+            loading
+            can-cancel
+            @cancel="store.stopGeneration()"
+          />
         </div>
       </q-scroll-area>
 
@@ -55,6 +61,7 @@
               class="q-px-lg q-py-sm text-body1 main-input"
               placeholder="Запитайте що завгодно..." 
               @keydown.enter.prevent="send"
+              @keydown.esc="store.stopGeneration()"
               :disable="!store.isConnected || isAwaiting"
             >
               <template v-slot:after>
@@ -66,7 +73,7 @@
                   size="14px"
                   :color="input.trim() || isAwaiting ? 'primary' : 'grey-4'" 
                   :text-color="input.trim() || isAwaiting ? 'white' : 'grey-7'"
-                  @click="isAwaiting ? stop() : send()" 
+                  @click="isAwaiting ? store.stopGeneration() : send()" 
                   :disable="!input.trim() && !isAwaiting"
                   class="q-mr-sm transition-all"
                 />
@@ -89,6 +96,7 @@ import { QScrollArea, useQuasar } from 'quasar';
 // Компоненти
 import ChatMessage from './Chat/ChatMessage.vue';
 import WelcomeScreen from './Chat/WelcomeScreen.vue';
+import StatusBubble from './Chat/StatusBubble.vue';
 
 const $q = useQuasar();
 const store = useGeminiStore();
@@ -99,15 +107,12 @@ const scrollArea = ref<QScrollArea | null>(null);
 const isAwaiting = computed(() => store.status === 'generating' || store.status === 'thinking');
 
 const showLoadingIndicator = computed(() => {
-  return (store.status !== 'idle' && store.status !== 'generating') || 
-         (store.status === 'generating' && !store.messages.some(m => m.type === 'gemini'));
+  return store.status !== 'idle';
 });
 
-function isLastGeminiMessage(id: string) {
-  const geminiMessages = store.messages.filter(m => m.type === 'gemini');
-  if (geminiMessages.length === 0) return false;
-  const last = geminiMessages[geminiMessages.length - 1];
-  return last ? last.id === id : false;
+function isCurrentlyStreaming(id: string) {
+  const lastMsg = store.messages[store.messages.length - 1];
+  return lastMsg && lastMsg.id === id && id.startsWith('stream-');
 }
 
 function formatSeconds(s: number) {
@@ -123,11 +128,7 @@ function send() {
   input.value = '';
 }
 
-function stop() {
-  // store.sendAction('chat:stop');
-}
-
-watch([() => store.messages.length, () => store.streamOutput, () => store.loadingIndicator.elapsedTime], () => {
+watch([() => store.messages.length, () => store.streamOutput, () => store.loadingIndicator.elapsedTime, () => store.activeToasts.length], () => {
   nextTick(() => {
     scrollArea.value?.setScrollPercentage('vertical', 1);
   }).catch(() => {});

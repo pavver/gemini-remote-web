@@ -169,7 +169,8 @@ export interface ConsentRequest {
 
 export interface ThoughtInfo {
   subject: string;
-  summary: string;
+  summary?: string;
+  description?: string;
   timestamp: string;
 }
 
@@ -190,6 +191,7 @@ export interface RemoteMessageRecord {
   type: 'user' | 'gemini' | 'info' | 'error' | 'warning';
   content: RemotePart[];
   model?: string;
+  thoughts?: ThoughtInfo[];
 }
 
 export interface ChatHistoryResponse {

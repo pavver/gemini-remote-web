@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-message-row q-mb-sm row no-wrap items-start" :class="message.type === 'user' ? 'justify-end' : 'justify-start'">
+  <div class="chat-message-row q-mb-sm row no-wrap items-start" :class="message.type === 'user' ? 'justify-end' : 'row justify-start'">
     
     <!-- Аватар бота (тільки зліва) -->
     <div v-if="message.type !== 'user'" class="avatar-col q-mr-xs gt-xs flex flex-center">
@@ -14,10 +14,11 @@
 
     <div class="message-content-wrapper" :class="message.type === 'user' ? 'user-wrapper' : 'bot-wrapper'">
       
-      <!-- Блок думок -->
+      <!-- Блок роздумів моделі -->
       <thinking-block 
         v-if="message.type === 'gemini' && showThinking" 
         :thought="thought" 
+        :thoughts="message.thoughts"
         :status="status" 
       />
 
@@ -134,7 +135,7 @@ function formatTime(iso: string) {
   transition: all 0.2s ease;
   display: inline-block;
   min-width: 80px;
-  border: 1px solid transparent; /* Однаковий розмір в обох темах */
+  border: 1px solid transparent;
 }
 
 .message-body {

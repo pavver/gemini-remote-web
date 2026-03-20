@@ -351,8 +351,6 @@ export const useGeminiStore = defineStore('gemini', () => {
                 streamOutput.value += p.chunk;
               }
             }
-
-            currentThought.value = null;
         }
         break;
       case 'event:chat:thought':
@@ -531,6 +529,10 @@ export const useGeminiStore = defineStore('gemini', () => {
     sendAction('chat:send', { text });
   }
 
+  function stopGeneration() {
+    sendAction('chat:stop');
+  }
+
   function replyToRequest(correlationId: string, confirmed: boolean) {
     sendAction('confirm:reply', { correlationId, confirmed });
   }
@@ -564,6 +566,7 @@ export const useGeminiStore = defineStore('gemini', () => {
     handleMessage,
     setProxyMode,
     sendMessage,
+    stopGeneration,
     replyToRequest,
     subscribe,
     unsubscribe,
