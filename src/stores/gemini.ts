@@ -25,7 +25,9 @@ import type {
   RemoteSettingDefinition,
   SettingsListResponse,
   RemoteMessageRecord,
-  ChatHistoryResponse
+  ChatHistoryResponse,
+  ModelStats,
+  StatsFullResponse
 } from '../types/protocol';
 
 export const useGeminiStore = defineStore('gemini', () => {
@@ -44,6 +46,10 @@ export const useGeminiStore = defineStore('gemini', () => {
   const activeModel = ref<string | null>(null);
   const geminiSessionId = ref<string | null>(null);
   const ramUsage = ref<string | null>(null); // formatted string
+  const gitBranch = ref<string | null>(null);
+  const projectInfo = ref<{ name: string, path: string } | null>(null);
+  const tokens = ref({ input: 0, output: 0, cached: 0, total: 0 });
+  const tokensLimit = ref<number>(1048576);
   const agents = ref<AgentInfo[]>([]);
   const mcpServers = ref<string[]>([]);
   const loadingIndicator = ref<{ phrase: string | null, elapsedTime: number }>({ phrase: null, elapsedTime: 0 });
@@ -51,6 +57,16 @@ export const useGeminiStore = defineStore('gemini', () => {
   const lastMessageId = ref<string | null>(null);
   const settingsHash = ref<string | null>(null);
   const settings = ref<RemoteSettingDefinition[]>([]);
+  const modelStats = ref<ModelStats[]>([]);
+
+  // UI Settings (Local)
+  const uiSettings = ref({
+    showThoughts: true,
+  });
+
+  function toggleUIPreference(key: keyof typeof uiSettings.value) {
+    uiSettings.value[key] = !uiSettings.value[key];
+  }
 
   // Active Requests (Confirmation Queue)
   const activeRequest = ref<ConsentRequest | null>(null);
@@ -91,6 +107,10 @@ export const useGeminiStore = defineStore('gemini', () => {
       'state:system:ram:rss',
       'state:system:ram:heap_total',
       'state:system:ram:heap_used',
+      'state:system:git_branch',
+      'state:system:project_info',
+      'state:system:tokens:total',
+      'state:system:tokens:limit',
       'state:system:agents',
 
       'state:system:mcp:servers',
@@ -203,6 +223,12 @@ export const useGeminiStore = defineStore('gemini', () => {
       return;
     }
 
+    if (msg.type === 'response:stats:full') {
+      const p = msg as unknown as StatsFullResponse;
+      modelStats.value = p.models;
+      return;
+    }
+
     if (!msg.topic) return;
     const payload = msg.payload;
 
@@ -260,6 +286,18 @@ export const useGeminiStore = defineStore('gemini', () => {
         break;
       case 'state:system:ram:heap_used':
         // Optional: store heapUsed if needed
+        break;
+      case 'state:system:git_branch':
+        if (payload) gitBranch.value = (payload as { branch: string | null }).branch;
+        break;
+      case 'state:system:project_info':
+        if (payload) projectInfo.value = payload as { name: string, path: string };
+        break;
+      case 'state:system:tokens:total':
+        if (payload) tokens.value.total = (payload as { total: number }).total;
+        break;
+      case 'state:system:tokens:limit':
+        if (payload) tokensLimit.value = (payload as { limit: number }).limit;
         break;
       case 'state:system:agents':
         if (payload) agents.value = (payload as AgentsState).agents || [];
@@ -465,6 +503,10 @@ export const useGeminiStore = defineStore('gemini', () => {
     sendAction('settings:get', { correlationId: `settings-${Date.now()}` });
   }
 
+  function fetchStats() {
+    sendAction('stats:get', { correlationId: `stats-${Date.now()}` });
+  }
+
   function updateSetting(id: string, value: unknown, hash?: string) {
     sendAction('settings:set', { 
       correlationId: `set-${Date.now()}`, 
@@ -500,8 +542,13 @@ export const useGeminiStore = defineStore('gemini', () => {
     quota,
     memory,
     ramUsage,
+    gitBranch,
+    projectInfo,
+    tokens,
+    tokensLimit,
     loadingIndicator,
     agents,
+    modelStats,
     mcpServers,
     activeEditor,
     activeModel,
@@ -521,9 +568,12 @@ export const useGeminiStore = defineStore('gemini', () => {
     subscribe,
     unsubscribe,
     loadSettings,
+    fetchStats,
     updateSetting,
     clearSettings,
     resetChatState,
-    loadHistory
+    loadHistory,
+    uiSettings,
+    toggleUIPreference
   };
 });

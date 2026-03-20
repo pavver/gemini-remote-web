@@ -105,6 +105,52 @@ export interface RamHeapUsedState {
   heapUsed: number;
 }
 
+export interface GitBranchState {
+  branch: string | null;
+}
+
+export interface TokensInputState {
+  input: number;
+}
+
+export interface TokensOutputState {
+  output: number;
+}
+
+export interface TokensCachedState {
+  cached: number;
+}
+
+export interface TokensTotalState {
+  total: number;
+}
+
+export interface TokensLimitState {
+  limit: number;
+}
+
+export interface ModelQuota {
+  remaining: number;
+  limit: number;
+  percentage: number;
+  resetTime?: string;
+  timeRemaining?: string;
+}
+
+export interface ModelStats {
+  model: string;
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReads: number;
+  quota?: ModelQuota;
+}
+
+export interface ProjectInfoState {
+  name: string;
+  path: string;
+}
+
 export interface RamUsageState {
   rss: number;
   heapTotal: number;
@@ -153,6 +199,12 @@ export interface ChatHistoryResponse {
   messages: RemoteMessageRecord[];
 }
 
+export interface StatsFullResponse {
+  type: 'response:stats:full';
+  correlationId: string;
+  models: ModelStats[];
+}
+
 // Orchestrator Specific Types
 export type OrchestratorAction = 
   | { action: 'AUTH', login: string, password: string }
@@ -190,6 +242,10 @@ export type AllTopics =
   | 'state:system:ram:rss'
   | 'state:system:ram:heap_total'
   | 'state:system:ram:heap_used'
+  | 'state:system:git_branch'
+  | 'state:system:tokens:total'
+  | 'state:system:tokens:limit'
+  | 'state:system:project_info'
   | 'state:session:status'
   | 'state:session:model'
   | 'state:session:id'

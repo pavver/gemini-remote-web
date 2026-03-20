@@ -23,20 +23,55 @@
           <q-icon name="edit" size="14px" />
           <span>{{ gemini.activeEditor }}</span>
         </div>
+        <div v-if="gemini.gitBranch" class="row items-center q-gutter-x-xs text-primary">
+          <q-icon name="hub" size="14px" />
+          <span>{{ gemini.gitBranch }}</span>
+        </div>
+        <div v-if="gemini.tokens.total > 0" class="row items-center q-gutter-x-xs">
+          <q-icon name="toll" size="14px" />
+          <span>{{ gemini.tokens.total.toLocaleString() }} tokens</span>
+        </div>
       </div>
 
       <q-space />
+
+      <!-- Context Usage -->
+      <div 
+        v-if="gemini.tokens.total > 0" 
+        class="row items-center q-gutter-x-sm q-mr-md hide-on-mobile cursor-pointer"
+        @click="showSystemDetails = true"
+      >
+        <span class="text-grey-7">CONTEXT:</span>
+        <span class="text-weight-bold" :class="contextUsageColor">{{ contextUsagePercent }}%</span>
+        <q-linear-progress 
+          :value="gemini.tokens.total / gemini.tokensLimit" 
+          :color="contextUsageColor" 
+          style="width: 80px; height: 4px" 
+          class="rounded-borders"
+        >
+          <q-tooltip>
+            Context Usage: {{ gemini.tokens.total.toLocaleString() }} / {{ gemini.tokensLimit.toLocaleString() }} tokens. Click for full stats.
+          </q-tooltip>
+        </q-linear-progress>
+      </div>
 
       <!-- Quota -->
       <div v-if="gemini.quota && gemini.quota.remaining !== undefined && gemini.quota.limit !== undefined" class="row items-center q-gutter-x-sm">
         <span class="text-grey-7 hide-on-mobile">TOKENS:</span>
         <span class="text-weight-bold">{{ gemini.quota.remaining.toLocaleString() }}</span>
+        <span v-if="quotaResetTime" class="text-caption text-grey-6 hide-on-mobile">
+          (resets in {{ quotaResetTime }})
+        </span>
         <q-linear-progress 
           :value="gemini.quota.remaining / gemini.quota.limit" 
           color="primary" 
           style="width: 60px; height: 3px" 
           class="rounded-borders"
-        />
+        >
+          <q-tooltip v-if="gemini.quota.resetTime">
+            Reset time: {{ gemini.quota.resetTime }}
+          </q-tooltip>
+        </q-linear-progress>
       </div>
     </div>
 
@@ -63,6 +98,28 @@ const statusColor = computed(() => {
     case 'generating': return 'primary';
     default: return 'grey';
   }
+});
+
+const contextUsagePercent = computed(() => {
+  if (!gemini.tokensLimit || gemini.tokensLimit === 0) return 0;
+  return Math.round((gemini.tokens.total / gemini.tokensLimit) * 100);
+});
+
+const contextUsageColor = computed(() => {
+  const p = contextUsagePercent.value;
+  if (p > 85) return 'negative';
+  if (p > 60) return 'orange';
+  return 'positive';
+});
+
+const quotaResetTime = computed(() => {
+  if (!gemini.quota || !gemini.quota.resetTime) return null;
+  
+  // resetTime is usually a ISO string or a locale time string from CLI
+  // We'll try to parse it. If it's just a time like "3:33 PM", we'll use it as is
+  // for display, but for a real countdown we'd need a full date.
+  // For now, let's just display the reset time string itself if it's available.
+  return gemini.quota.resetTime;
 });
 </script>
 
