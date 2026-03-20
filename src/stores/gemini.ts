@@ -59,13 +59,23 @@ export const useGeminiStore = defineStore('gemini', () => {
   const settings = ref<RemoteSettingDefinition[]>([]);
   const modelStats = ref<ModelStats[]>([]);
 
+  const UI_SETTINGS_KEY = 'gemini_ui_preferences';
+
   // UI Settings (Local)
-  const uiSettings = ref({
-    showThoughts: true,
-  });
+  const uiSettings = ref(JSON.parse(localStorage.getItem(UI_SETTINGS_KEY) || '{"showThoughts": true}'));
 
   function toggleUIPreference(key: keyof typeof uiSettings.value) {
     uiSettings.value[key] = !uiSettings.value[key];
+    localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(uiSettings.value));
+    
+    // Динамічне керування підпискою на роздуми
+    if (key === 'showThoughts') {
+      if (uiSettings.value.showThoughts) {
+        subscribe(['event:chat:thought']);
+      } else {
+        unsubscribe(['event:chat:thought']);
+      }
+    }
   }
 
   // Active Requests (Confirmation Queue)
@@ -118,7 +128,6 @@ export const useGeminiStore = defineStore('gemini', () => {
       'state:chat:last_message_id',
       'state:confirm:active:request',
       'event:chat:stream',
-      'event:chat:thought',
       'event:chat:user_message',
       'event:confirm:active:resolved',
       'event:system:feedback',
@@ -128,6 +137,11 @@ export const useGeminiStore = defineStore('gemini', () => {
       'event:system:hook:end',
       'event:system:mcp:progress'
     ];
+    
+    // Додаємо підписку на роздуми лише якщо вони увімкнені в UI
+    if (uiSettings.value.showThoughts) {
+      allTopics.push('event:chat:thought');
+    }
     
     subscribe(allTopics);
     
