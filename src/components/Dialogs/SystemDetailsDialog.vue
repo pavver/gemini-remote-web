@@ -1,186 +1,195 @@
 <template>
-  <q-card :class="$q.dark.isActive ? 'bg-grey-10 text-white' : 'bg-white text-black'" style="min-width: 450px; border-radius: 16px">
+  <q-card :class="$q.dark.isActive ? 'bg-grey-10 text-white' : 'bg-white text-black'" style="min-width: 600px; border-radius: 12px">
     <q-card-section class="row items-center q-pb-none">
-      <q-avatar icon="analytics" color="primary-1" text-color="primary" size="md" />
-      <div class="text-h6 q-ml-md font-exo">{{ $t('system.title') }}</div>
+      <div class="text-h6 text-weight-bold">{{ t('system.sessionStats') }}</div>
       <q-space />
       <q-btn icon="close" flat round dense v-close-popup color="grey-6" />
     </q-card-section>
-    
+
     <q-card-section class="q-pa-md">
-      <!-- Project Info -->
-      <div v-if="gemini.projectInfo" class="project-banner q-pa-md rounded-borders q-mb-lg" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'">
-        <div class="row items-center q-mb-xs">
-          <div class="text-overline text-grey-6 text-weight-bold">{{ $t('system.project') }}</div>
-          <q-space />
-          <q-badge v-if="gemini.gitBranch" color="primary" class="q-px-sm">
-            <q-icon name="hub" size="12px" class="q-mr-xs" />
-            {{ gemini.gitBranch }}
-          </q-badge>
+      <!-- Interaction Summary -->
+      <div class="section-title text-grey-7 q-mb-sm">{{ t('system.interactionSummary') }}</div>
+      <div class="summary-grid q-mb-lg">
+        <div class="row q-py-xs">
+          <div class="col-4 text-grey-6">{{ t('system.sessionId') }}:</div>
+          <div class="col-8 text-weight-medium">{{ summary?.sessionId || '-' }}</div>
         </div>
-        <div class="text-h6 text-weight-bold text-primary">{{ gemini.projectInfo.name }}</div>
-        <div class="text-caption text-grey-6 ellipsis">{{ gemini.projectInfo.path }}</div>
-      </div>
-
-      <!-- Statistics Section -->
-      <div class="row items-center q-mb-md">
-        <div class="text-subtitle2 text-weight-bold uppercase">{{ $t('system.statistics') }}</div>
-        <q-space />
-        <q-btn flat round dense icon="refresh" size="sm" color="primary" @click="gemini.fetchStats()">
-          <q-tooltip>{{ $t('system.refresh') }}</q-tooltip>
-        </q-btn>
-      </div>
-
-      <div v-if="gemini.modelStats.length > 0" class="q-gutter-y-md">
-        <q-card 
-          v-for="m in gemini.modelStats" 
-          :key="m.model" 
-          flat 
-          bordered 
-          class="model-stat-card"
-          :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-        >
-          <q-card-section class="q-pa-md">
-            <div class="row items-center q-mb-md">
-              <q-badge color="indigo" class="q-mr-sm">{{ m.requests }}</q-badge>
-              <div class="text-weight-bold text-primary">{{ m.model }}</div>
-            </div>
-            
-            <div class="row q-col-gutter-sm text-center q-mb-md">
-              <div class="col-4">
-                <div class="text-caption text-grey-6">In</div>
-                <div class="text-weight-bold">{{ m.inputTokens.toLocaleString() }}</div>
-              </div>
-              <div class="col-4 border-sides">
-                <div class="text-caption text-grey-6">Out</div>
-                <div class="text-weight-bold">{{ m.outputTokens.toLocaleString() }}</div>
-              </div>
-              <div class="col-4">
-                <div class="text-caption text-grey-6">Cache</div>
-                <div class="text-weight-bold">{{ m.cacheReads.toLocaleString() }}</div>
-              </div>
-            </div>
-
-            <div v-if="m.quota" class="column q-mt-sm">
-              <div class="row items-center justify-between q-mb-xs">
-                <div class="text-caption text-grey-7">{{ $t('system.quotaUsage') }}</div>
-                <div class="text-weight-bold text-caption" :class="m.quota.percentage > 80 ? 'text-negative' : ''">
-                  {{ m.quota.percentage }}%
-                </div>
-              </div>
-              <q-linear-progress 
-                :value="m.quota.percentage / 100" 
-                :color="m.quota.percentage > 80 ? 'negative' : 'primary'"
-                size="6px"
-                rounded
-              />
-              <div v-if="m.quota.resetTime" class="text-right text-grey-6 q-mt-xs" style="font-size: 10px">
-                {{ $t('system.resetsAt', { time: m.quota.resetTime }) }}
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-      <div v-else class="empty-stats q-pa-xl text-center border-dashed rounded-borders">
-        <q-icon name="insights" size="48px" color="grey-4" />
-        <div class="text-caption text-grey-6 q-mt-sm">{{ $t('system.noStats') }}</div>
-      </div>
-
-      <!-- Infrastructure -->
-      <div class="row q-col-gutter-md q-mt-md">
-        <!-- MCP Servers -->
-        <div class="col-12 col-sm-6">
-          <div class="text-subtitle2 q-mb-sm text-weight-bold uppercase">{{ $t('system.mcpServers') }}</div>
-          <q-list bordered separator dense class="rounded-borders overflow-hidden" v-if="gemini.mcpServers.length > 0">
-            <q-item v-for="srv in gemini.mcpServers" :key="srv" class="q-py-xs">
-              <q-item-section class="text-caption">{{ srv }}</q-item-section>
-              <q-item-section side><q-badge color="positive" rounded size="8px" /></q-item-section>
-            </q-item>
-          </q-list>
-          <div v-else class="text-caption text-grey-5 italic">{{ $t('system.noMcp') }}</div>
-        </div>
-
-        <!-- Available Agents -->
-        <div class="col-12 col-sm-6">
-          <div class="text-subtitle2 q-mb-sm text-weight-bold uppercase">{{ $t('system.agents') }}</div>
-          <div class="row q-gutter-xs" v-if="gemini.agents.length > 0">
-            <q-chip 
-              v-for="agt in gemini.agents" 
-              :key="agt.name" 
-              dense 
-              outline 
-              color="primary" 
-              icon="smart_toy"
-              class="agent-chip"
-            >
-              {{ agt.name }}
-            </q-chip>
+        <div class="row q-py-xs">
+          <div class="col-4 text-grey-6">{{ t('system.authMethod') }}:</div>
+          <div class="col-8">
+            {{ summary?.authMethod || '-' }} 
+            <span v-if="summary?.userEmail" class="text-grey-6">({{ summary.userEmail }})</span>
           </div>
-          <div v-else class="text-caption text-grey-5 italic">{{ $t('system.noAgents') }}</div>
         </div>
+        <div class="row q-py-xs">
+          <div class="col-4 text-grey-6">{{ t('system.tier') }}:</div>
+          <div class="col-8">{{ summary?.tier || '-' }}</div>
+        </div>
+        <div class="row q-py-xs">
+          <div class="col-4 text-grey-6">{{ t('system.toolCalls') }}:</div>
+          <div class="col-8">
+            {{ summary?.toolCalls.total || 0 }} 
+            <span class="text-grey-6">(</span>
+            <span class="text-positive">✓ {{ summary?.toolCalls.success || 0 }}</span>
+            <span class="text-grey-6"> x </span>
+            <span class="text-negative">{{ summary?.toolCalls.fail || 0 }}</span>
+            <span class="text-grey-6">)</span>
+          </div>
+        </div>
+        <div class="row q-py-xs">
+          <div class="col-4 text-grey-6">{{ t('system.successRate') }}:</div>
+          <div class="col-8">{{ (summary?.successRate || 0).toFixed(1) }}%</div>
+        </div>
+      </div>
+
+      <!-- Performance -->
+      <div class="section-title text-grey-7 q-mb-sm">{{ t('system.performance') }}</div>
+      <div class="summary-grid q-mb-lg">
+        <div class="row q-py-xs">
+          <div class="col-4 text-grey-6">{{ t('system.wallTime') }}:</div>
+          <div class="col-8">{{ formatDuration(summary?.wallTimeSeconds || 0) }}</div>
+        </div>
+        <div class="row q-py-xs">
+          <div class="col-4 text-grey-6">{{ t('system.agentActive') }}:</div>
+          <div class="col-8">{{ formatDuration(summary?.agentActiveSeconds || 0) }}</div>
+        </div>
+        <div class="row q-py-xs pl-md">
+          <div class="col-4 text-grey-6">» {{ t('system.apiTime') }}:</div>
+          <div class="col-8">
+            {{ formatDuration(summary?.apiTimeSeconds || 0) }} 
+            <span class="text-grey-6">({{ calculatePercent(summary?.apiTimeSeconds, summary?.agentActiveSeconds) }}%)</span>
+          </div>
+        </div>
+        <div class="row q-py-xs pl-md">
+          <div class="col-4 text-grey-6">» {{ t('system.toolTime') }}:</div>
+          <div class="col-8">
+            {{ formatDuration(summary?.toolTimeSeconds || 0) }}
+            <span class="text-grey-6">({{ calculatePercent(summary?.toolTimeSeconds, summary?.agentActiveSeconds) }}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Stats Table -->
+      <div class="model-stats-table">
+        <div class="row text-grey-6 q-pb-sm border-b text-caption">
+          <div class="col-4">{{ t('system.table.model') }}</div>
+          <div class="col-1 text-center">{{ t('system.table.reqs') }}</div>
+          <div class="col-4 text-center">{{ t('system.table.usage') }}</div>
+          <div class="col-3 text-right">{{ t('system.table.resets') }}</div>
+        </div>
+
+        <div v-for="m in gemini.modelStats" :key="m.model" class="row items-center q-py-sm border-b-dashed">
+          <div class="col-4 text-weight-bold text-primary">{{ m.model }}</div>
+          <div class="col-1 text-center">{{ m.requests }}</div>
+          <div class="col-4 q-px-sm">
+            <div class="row items-center no-wrap">
+              <q-linear-progress 
+                :value="(m.quota?.percentage || 0) / 100" 
+                color="primary" 
+                track-color="grey-3"
+                class="col rounded-borders"
+                style="height: 8px"
+              />
+              <span class="q-ml-xs text-caption" style="min-width: 30px">{{ m.quota?.percentage || 0 }}%</span>
+            </div>
+          </div>
+          <div class="col-3 text-right text-caption text-grey-7">
+            <countdown-timer v-if="m.quota?.resetSeconds" :seconds="m.quota.resetSeconds" />
+            <span v-else>-</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="gemini.modelStats.length === 0" class="q-pa-lg text-center text-grey-6 italic">
+        {{ t('system.noStats') }}
+      </div>
+
+      <!-- Footer Info (Project) -->
+      <div class="row items-center q-mt-xl text-caption text-grey-6">
+        <q-icon name="folder" size="14px" class="q-mr-xs" />
+        <span class="ellipsis">{{ gemini.projectInfo?.path }}</span>
+        <q-space />
+        <q-badge v-if="gemini.gitBranch" outline color="grey-6">
+          {{ gemini.gitBranch }}
+        </q-badge>
       </div>
     </q-card-section>
   </q-card>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useGeminiStore } from '../../stores/gemini';
+import { useI18n } from 'vue-i18n';
+import CountdownTimer from '../Common/CountdownTimer.vue';
 
 const gemini = useGeminiStore();
+const { t } = useI18n({ useScope: 'global' });
+
+const summary = computed(() => gemini.sessionSummary);
 
 onMounted(() => {
   gemini.fetchStats();
 });
+
+function formatDuration(seconds: number): string {
+  if (seconds === 0) return `0${t('system.units.s')}`;
+  
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  
+  const parts = [];
+  if (h > 0) parts.push(`${h}${t('system.units.h')}`);
+  if (m > 0) parts.push(`${m}${t('system.units.m')}`);
+  if (s > 0 || (h === 0 && m === 0)) parts.push(`${s}${t('system.units.s')}`);
+  
+  return parts.join(' ');
+}
+
+function calculatePercent(part?: number, total?: number): string {
+  if (!part || !total || total === 0) return '0.0';
+  return ((part / total) * 100).toFixed(1);
+}
 </script>
 
 <style scoped>
-.font-exo {
-  font-family: 'Exo 2', sans-serif;
+.section-title {
+  font-weight: bold;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding-bottom: 4px;
 }
 
-.bg-primary-1 {
-  background: rgba(var(--q-primary), 0.1);
+.body--dark .section-title {
+  border-bottom-color: rgba(255,255,255,0.05);
 }
 
-.project-banner {
-  border: 1px solid rgba(var(--q-primary), 0.1);
+.summary-grid {
+  font-size: 13px;
 }
 
-.model-stat-card {
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.05);
+.pl-md {
+  padding-left: 20px;
 }
 
-.body--dark .model-stat-card {
-  border-color: rgba(255,255,255,0.05);
+.border-b {
+  border-bottom: 1px solid rgba(0,0,0,0.1);
 }
 
-.border-sides {
-  border-left: 1px solid rgba(0,0,0,0.05);
-  border-right: 1px solid rgba(0,0,0,0.05);
+.body--dark .border-b {
+  border-bottom-color: rgba(255,255,255,0.1);
 }
 
-.body--dark .border-sides {
-  border-color: rgba(255,255,255,0.05);
+.border-b-dashed {
+  border-bottom: 1px dashed rgba(0,0,0,0.05);
 }
 
-.border-dashed {
-  border: 2px dashed rgba(0,0,0,0.05);
+.body--dark .border-b-dashed {
+  border-bottom-color: rgba(255,255,255,0.05);
 }
 
-.body--dark .border-dashed {
-  border-color: rgba(255,255,255,0.05);
-}
-
-.agent-chip {
-  font-size: 10px;
-}
-
-.uppercase {
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 11px;
-  color: #757575;
+.model-stats-table {
+  font-size: 13px;
 }
 </style>

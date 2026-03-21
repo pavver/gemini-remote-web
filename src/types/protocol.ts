@@ -134,6 +134,7 @@ export interface ModelQuota {
   limit: number;
   percentage: number;
   resetTime?: string;
+  resetSeconds?: number;
   timeRemaining?: string;
 }
 
@@ -201,10 +202,28 @@ export interface ChatHistoryResponse {
   messages: RemoteMessageRecord[];
 }
 
+export interface SessionSummary {
+  sessionId: string;
+  authMethod: string;
+  userEmail?: string;
+  tier: string;
+  toolCalls: {
+    total: number;
+    success: number;
+    fail: number;
+  };
+  successRate: number;
+  wallTimeSeconds: number;
+  agentActiveSeconds: number;
+  apiTimeSeconds: number;
+  toolTimeSeconds: number;
+}
+
 export interface StatsFullResponse {
   type: 'response:stats:full';
   correlationId: string;
   models: ModelStats[];
+  summary?: SessionSummary;
 }
 
 // Orchestrator Specific Types

@@ -27,7 +27,8 @@ import type {
   RemoteMessageRecord,
   ChatHistoryResponse,
   ModelStats,
-  StatsFullResponse
+  StatsFullResponse,
+  SessionSummary
 } from '../types/protocol';
 
 export const useGeminiStore = defineStore('gemini', () => {
@@ -58,6 +59,7 @@ export const useGeminiStore = defineStore('gemini', () => {
   const settingsHash = ref<string | null>(null);
   const settings = ref<RemoteSettingDefinition[]>([]);
   const modelStats = ref<ModelStats[]>([]);
+  const sessionSummary = ref<SessionSummary | null>(null);
 
   const UI_SETTINGS_KEY = 'gemini_ui_preferences';
 
@@ -240,6 +242,7 @@ export const useGeminiStore = defineStore('gemini', () => {
     if (msg.type === 'response:stats:full') {
       const p = msg as unknown as StatsFullResponse;
       modelStats.value = p.models;
+      if (p.summary) sessionSummary.value = p.summary;
       return;
     }
 
@@ -565,6 +568,7 @@ export const useGeminiStore = defineStore('gemini', () => {
     loadingIndicator,
     agents,
     modelStats,
+    sessionSummary,
     mcpServers,
     activeEditor,
     activeModel,

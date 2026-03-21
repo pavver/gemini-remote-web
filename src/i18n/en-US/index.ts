@@ -15,8 +15,20 @@ export default {
   },
   system: {
     title: 'System Resources',
+    sessionStats: 'Session Stats',
+    interactionSummary: 'Interaction Summary',
+    performance: 'Performance',
+    sessionId: 'Session ID',
+    authMethod: 'Auth Method',
+    tier: 'Tier',
+    toolCalls: 'Tool Calls',
+    successRate: 'Success Rate',
+    wallTime: 'Wall Time',
+    agentActive: 'Agent Active',
+    apiTime: 'API Time',
+    toolTime: 'Tool Time',
     project: 'Project',
-    statistics: 'Session Statistics',
+    statistics: 'Model Stats',
     mcpServers: 'Active MCP Servers',
     agents: 'Available Agents',
     noStats: 'No stats available yet. Start a conversation!',
@@ -24,7 +36,18 @@ export default {
     noAgents: 'No agents detected',
     refresh: 'Refresh Stats',
     quotaUsage: 'Quota Usage',
-    resetsAt: 'Resets at {time}'
+    resetsAt: 'Resets in {time}',
+    table: {
+      model: 'Model',
+      reqs: 'Reqs',
+      usage: 'Model usage',
+      resets: 'Usage resets'
+    },
+    units: {
+      h: 'h',
+      m: 'm',
+      s: 's'
+    }
   },
   user: {
     signOut: 'Sign Out'

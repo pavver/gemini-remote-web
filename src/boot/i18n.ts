@@ -22,8 +22,9 @@ declare module 'vue-i18n' {
 /* eslint-enable @typescript-eslint/no-empty-object-type */
 
 export default defineBoot(({ app }) => {
+  const savedLang = localStorage.getItem('gemini_app_locale');
   const i18n = createI18n<{ message: MessageSchema }, MessageLanguages>({
-    locale: 'en-US',
+    locale: savedLang || 'en-US',
     legacy: false,
     messages,
   });
